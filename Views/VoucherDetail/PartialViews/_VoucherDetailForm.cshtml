@@ -1,9 +1,24 @@
 ﻿@using VoucherCapture.ViewModel
 @model List<VoucherDetail_ViewModel>
 
-@*     @foreach (var item in Model)
-{ *@
-<div class="row align-middle">  
+@{
+    // Separar artículos normales de consignación
+    var normalItems = new List<VoucherDetail_ViewModel>();
+    var consignmentItems = new List<VoucherDetail_ViewModel>();
+
+    foreach (var item in Model)
+    {
+        // Verificar si es consignación (si tiene almacén con ID 999)
+        bool isConsignment = item.Storages != null && item.Storages.Any(s => s.IdStorage == 999);
+
+        if (isConsignment)
+            consignmentItems.Add(item);
+        else
+            normalItems.Add(item);
+    }
+}
+
+<div class="row align-middle">
     <div class="col">
         <div class="row">
             <div class="col-auto d-flex">
@@ -22,106 +37,136 @@
         </div>
     </div>
 </div>
-@* } *@
 <br />
-<table class="table table-secondary table-sm table-bordered table-hover table-striped text-center align-middle">
-    <thead>
-        <tr>
-            <th rowspan="2" width="10%">Insumo</th>
-            <th rowspan="2" width="40%">Descripción</th>
-            <th rowspan="2" width="6%">Cantidad Solicitada</th>
-            <th colspan="6" width="39%">Almacén</th>
-            <th rowspan="2" width="5%">T. U.</th>
-        </tr>
-        <tr>
-            <th colspan="2">Gral</th>
-            <th colspan="2">Imp</th> 
-           <th colspan="2">M.P</th>
 
-            @{
-                List<string> nombres = new List<string>();
-            }
-            @foreach (var item in Model)
-            {                
-                @foreach (var storage in item.Storages)
-                {                   
-                    @if (storage.QtyTotal > 0)                  
-                    {
-                        @if (!nombres.Contains(@storage.Name.Substring(8)))
-                        {
-                            @if ((storage.IdStorage != 19) && (storage.IdStorage != 172357) && (storage.IdStorage != 172356))
-                            {
-                                nombres.Add(@storage.Name.Substring(8));
-                                <th colspan="2">@storage.Name.Substring(8)</th>
-                            }
-                        }
+@if (normalItems.Any())
+{
+    <h5><i class="bi bi-box"></i> Artículos Normales</h5>
+    <table class="table table-secondary table-sm table-bordered table-hover table-striped text-center align-middle">
+        <thead>
+            <tr>
+                <th rowspan="2" width="10%">Insumo</th>
+                <th rowspan="2" width="40%">Descripción</th>
+                <th rowspan="2" width="6%">Cantidad Solicitada</th>
+                <th colspan="6" width="39%">Almacén</th>
+                <th rowspan="2" width="5%">T. U.</th>
+            </tr>
+            <tr>
+                <th colspan="2">Gral</th>
+                <th colspan="2">Imp</th>
+                <th colspan="2">M.P</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in normalItems)
+            {
+                <tr name="supplies" data-id="@item.IdVoucherDetail" data-qtyReq="@item.QtyRequested">
+                    <td>@item.MicrosipKey</td>
+                    <td>@item.Supply</td>
+                    <td>@item.QtyRequested</td>
+
+                    @{
+                        // Buscar almacenes específicos por ID
+                        var almacenGral = item.Storages?.FirstOrDefault(s => s.IdStorage == 19);
+                        var almacenImp = item.Storages?.FirstOrDefault(s => s.IdStorage == 172357);
+                        var almacenMP = item.Storages?.FirstOrDefault(s => s.IdStorage == 172356);
                     }
-                }
-            }
-        </tr>
-    </thead>
-    <tbody>
-        @{
-            List<string> nombresAl = new List<string>();
-        }
-        @foreach (var item in Model)
-        {
-            <tr name="supplies" data-id="@item.IdVoucherDetail" data-qtyReq="@item.QtyRequested">
-                <td>@item.MicrosipKey</td>
-                <td>@item.Supply</td>
-                <td>@item.QtyRequested</td>
-                @foreach (var storage in item.Storages)
-                {
-                    string dis = storage.QtyTotal == 0 ? "disabled" : "";
-                    @if (storage.IdStorage == 19 || storage.IdStorage == 172357 || storage.IdStorage == 172356)
-                    {
-                        <td>
-                            <input class="form-control" type="number" name="txtQtyAS" step="0.001" data-storage="@storage.IdStorage" data-qtyTotal="@storage.QtyTotal" @dis />
-                        </td>
-                        <td>
-                            @storage.QtyTotal
-                        </td>
-                    }
-                    else
-                    {
-                        @if (storage.QtyTotal > 0)
+
+                    <!-- Almacén General -->
+                    <td>
+                        @if (almacenGral != null && almacenGral.QtyTotal > 0)
                         {
-                            nombresAl.Add(@storage.Name.Substring(8));
-                            <td>
-                                <input class="form-control" type="number" name="txtQtyAS" step="0.001" data-storage="@storage.IdStorage" data-qtyTotal="@storage.QtyTotal" @dis />
-                            </td>
-                            <td>
-                                @storage.QtyTotal
-                            </td>
+                            <input class="form-control" type="number" name="txtQtyAS" step="0.001"
+                                   data-storage="19" data-qtyTotal="@almacenGral.QtyTotal" />
                         }
                         else
                         {
-                            @if (!nombresAl.Contains(@storage.Name.Substring(8)))
-                            {
-                                <td hidden>
-                                    <input class="form-control" type="number" name="txtQtyAS" step="0.001" data-storage="@storage.IdStorage" data-qtyTotal="@storage.QtyTotal" @dis />
-                                </td>
-                                <td hidden>
-                                    @storage.QtyTotal
-                                </td>
-                            }
-                            else
-                            {
-                                <td>
-                                    <input class="form-control" type="number" name="txtQtyAS" step="0.001" data-storage="@storage.IdStorage" data-qtyTotal="@storage.QtyTotal" @dis />
-                                </td>
-                                <td>
-                                    @storage.QtyTotal
-                                </td>
-                            }                           
+                            <input class="form-control" type="number" name="txtQtyAS" step="0.001"
+                                   data-storage="19" data-qtyTotal="0" disabled />
                         }
-                    }
-                }
-                <td>@item.UnitType</td>
+                    </td>
+                    <td>@(almacenGral?.QtyTotal ?? 0)</td>
+
+                    <!-- Almacén Importación -->
+                    <td>
+                        @if (almacenImp != null && almacenImp.QtyTotal > 0)
+                        {
+                            <input class="form-control" type="number" name="txtQtyAS" step="0.001"
+                                   data-storage="172357" data-qtyTotal="@almacenImp.QtyTotal" />
+                        }
+                        else
+                        {
+                            <input class="form-control" type="number" name="txtQtyAS" step="0.001"
+                                   data-storage="172357" data-qtyTotal="0" disabled />
+                        }
+                    </td>
+                    <td>@(almacenImp?.QtyTotal ?? 0)</td>
+
+                    <!-- Almacén Materia Prima -->
+                    <td>
+                        @if (almacenMP != null && almacenMP.QtyTotal > 0)
+                        {
+                            <input class="form-control" type="number" name="txtQtyAS" step="0.001"
+                                   data-storage="172356" data-qtyTotal="@almacenMP.QtyTotal" />
+                        }
+                        else
+                        {
+                            <input class="form-control" type="number" name="txtQtyAS" step="0.001"
+                                   data-storage="172356" data-qtyTotal="0" disabled />
+                        }
+                    </td>
+                    <td>@(almacenMP?.QtyTotal ?? 0)</td>
+
+                    <td>@item.UnitType</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (consignmentItems.Any())
+{
+    <br />
+    <h5><i class="bi bi-box-seam"></i> Artículos de Consignación</h5>
+    <table class="table table-warning table-sm table-bordered table-hover table-striped text-center align-middle">
+        <thead>
+            <tr>
+                <th width="15%">Insumo</th>
+                <th width="45%">Descripción</th>
+                <th width="10%">Cantidad Solicitada</th>
+                <th width="10%">Stock Disponible</th>
+                <th width="10%">Cantidad Autorizada</th>
+                <th width="10%">T. U.</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var item in consignmentItems)
+            {
+                var consignmentStorage = item.Storages?.FirstOrDefault(s => s.IdStorage == 999);
+                decimal availableStock = consignmentStorage != null ? (decimal)consignmentStorage.QtyTotal : 0;
+
+                <tr name="consignmentSupplies" data-id="@item.IdVoucherDetail" data-qtyReq="@item.QtyRequested">
+                    <td>@item.MicrosipKey</td>
+                    <td>@item.Supply</td>
+                    <td>@item.QtyRequested</td>
+                    <td>
+                        <span class="badge @(availableStock > 0 ? "bg-success" : "bg-danger")">
+                            @availableStock.ToString("N2")
+                        </span>
+                    </td>
+                    <td>
+                        <input class="form-control" type="number" name="txtQtyConsignment"
+                               step="0.001" min="0" max="@availableStock"
+                               data-storage="999" data-qtyTotal="@availableStock"
+                               @(availableStock == 0 ? "disabled" : "") />
+                    </td>
+                    <td>@item.UnitType</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
 <br />
 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
     <button type="button" class="btn btn-danger" style="margin-right:auto;" onclick="Authorize(3)"><i class="bi bi-x-lg"></i> Rechazar</button>
@@ -157,9 +202,11 @@
         }
         var result = confirm("¿Realmente quiere " + msg + " esta solicitud?");
         if (result) {
-            var rowsTbl = document.getElementsByName('supplies');
             var data = [];
             var hasError = false;
+
+            // Procesar artículos normales
+            var rowsTbl = document.getElementsByName('supplies');
             for (var i = 0; i < rowsTbl.length; i++) {
                 var inputs = rowsTbl[i].querySelectorAll('input[name="txtQtyAS"]');
                 var rowData = {
@@ -168,30 +215,34 @@
                 };
                 var sum = 0;
                 var qtyReq = parseFloat(rowsTbl[i].getAttribute('data-qtyReq'));
+
                 for (var j = 0; j < inputs.length; j++) {
-                    if (parseFloat(inputs[j].value) < 0) {
+                    var inputValue = parseFloat(inputs[j].value) || 0;
+
+                    if (inputValue < 0) {
                         hasError = true;
                         alert('Se debe de aceptar una cantidad mayor o igual a 0.');
                         inputs[j].focus();
                         break;
                     }
-                    var qtyTotal = inputs[j].getAttribute('data-qtyTotal');
-                    if (parseFloat(inputs[j].value) > parseFloat(qtyTotal)) {
+
+                    var qtyTotal = parseFloat(inputs[j].getAttribute('data-qtyTotal'));
+                    if (inputValue > qtyTotal) {
                         hasError = true;
                         alert('No se puede aceptar una cantidad mayor a la existente.');
                         inputs[j].focus();
                         break;
                     }
-                    var inputValue = inputs[j].value;
-                    if(inputValue.length == 0){
-                        inputValue = 0;
-                    }
+
                     rowData.storages.push({
-                        qtyTotal: parseFloat(inputValue),
+                        qtyTotal: inputValue,
                         idStorage: inputs[j].getAttribute('data-storage')
                     });
-                    sum += parseFloat(inputValue);
+                    sum += inputValue;
                 }
+
+                if (hasError) break;
+
                 if (sum <= qtyReq) {
                     data.push(rowData);
                 } else {
@@ -200,12 +251,54 @@
                     break;
                 }
             }
+
+            // Procesar artículos de consignación
+            if (!hasError) {
+                var consignmentRows = document.getElementsByName('consignmentSupplies');
+                for (var i = 0; i < consignmentRows.length; i++) {
+                    var input = consignmentRows[i].querySelector('input[name="txtQtyConsignment"]');
+                    var qtyReq = parseFloat(consignmentRows[i].getAttribute('data-qtyReq'));
+                    var qtyTotal = parseFloat(input.getAttribute('data-qtyTotal'));
+                    var inputValue = parseFloat(input.value) || 0;
+
+                    if (inputValue < 0) {
+                        hasError = true;
+                        alert('Se debe de aceptar una cantidad mayor o igual a 0.');
+                        input.focus();
+                        break;
+                    }
+
+                    if (inputValue > qtyTotal) {
+                        hasError = true;
+                        alert('No se puede aceptar una cantidad mayor a la existente en consignación.');
+                        input.focus();
+                        break;
+                    }
+
+                    if (inputValue > qtyReq) {
+                        hasError = true;
+                        alert('No se puede aceptar una cantidad mayor a la requerida.');
+                        input.focus();
+                        break;
+                    }
+
+                    data.push({
+                        idVoucherDetail: consignmentRows[i].getAttribute('data-id'),
+                        storages: [{
+                            qtyTotal: inputValue,
+                            idStorage: 999 // ID para consignación
+                        }]
+                    });
+                }
+            }
+
             if (!hasError) {
                 var comment = $('#txtComment').val();
                 var inputElement = document.getElementById('txtConcept');
                 var datalistElement = document.getElementById('concepts');
                 var selectedValue = inputElement.value;
                 var selectedOption = Array.from(datalistElement.options).find(option => option.value === selectedValue);
+
                 if (!selectedOption) {
                     inputElement.value = null;
                     alert('Se tiene que seleccionar un concepto.');

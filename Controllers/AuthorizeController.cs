@@ -4,7 +4,10 @@ using System.Data.SqlClient;
 using System.Data;
 using VoucherCapture.Models;
 using VoucherCapture.ViewModel;
-
+using System.Data.Common;
+using System;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace VoucherCapture.Controllers
 {
@@ -21,376 +24,201 @@ namespace VoucherCapture.Controllers
         [HttpPost]
         public JsonResult Index(int status, int idVoucher, List<VoucherDetail_ViewModel> lsvVDM, string comment, int idConcept)
         {
+            // --- VALIDACIONES INICIALES ---
             if (User.IsInRole("Lectura") || User.IsInRole("Operacional") || User.IsInRole("CentroCosto"))
             {
                 return Json(HomeController.ShowAlert("danger", "Error: no tiene permiso de acceder."));
             }
             if (idVoucher == 0)
             {
-                TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Ha sucedido un error id 0");
-                return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
+                return Json(HomeController.ShowAlert("danger", "Ha sucedido un error id 0."));
             }
             int idSignatureFlow = GetIdSignatureFlow();
             if (idSignatureFlow == 0)
             {
-                TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Este usuario no tiene permitido autorizar solicitudes");
-                return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
+                return Json(HomeController.ShowAlert("danger", "Este usuario no tiene permitido autorizar solicitudes."));
             }
-            try
+
+            // --- INICIA CONEXIÓN Y TRANSACCIÓN ---
+            using (var cnn = new SqlConnection(connectionStringSQL))
             {
-                var diccionario = new Dictionary<int, List<VoucherDetail_Model>>();
-                var lstVDMList = new List<List<VoucherDetail_Model>>();
-                var listVDM = new List<VoucherDetail_Model>();
-                foreach (var item in lsvVDM)
+                cnn.Open();
+                using (SqlTransaction transaction = cnn.BeginTransaction())
                 {
-                    int countZeros = 0;
-                    int i = 0;
-                    foreach (var subitem in item.Storages)
-                    { 
-                        if (subitem.QtyTotal > 0)
+                    try
+                    {
+                        // --- LÓGICA DE PROCESAMIENTO ---
+                        var listVDM = new List<VoucherDetail_Model>();
+                        const int CONSIGNMENT_VIRTUAL_ID = 999;
+                        const int GENERAL_WAREHOUSE_ID = 19; // ID de ALMACEN GENERAL
+
+                        // 1. Mapea los datos del front-end a un modelo interno limpio
+                        foreach (var item in lsvVDM)
                         {
-                            if(i == 0) { 
-                            listVDM.Add(new VoucherDetail_Model()
+                            foreach (var subitem in item.Storages)
                             {
-                                IdStorage = subitem.IdStorage,
-                                QtyAuthorized = Convert.ToDecimal(subitem.QtyTotal),
-                                IdVoucherDetail = item.IdVoucherDetail
-                            });
-                            } else
-                            {
-                                int idVoucherDetail = InsertVoucherDetail(idVoucher, item.IdVoucherDetail, subitem.QtyTotal);
-                                listVDM.Add(new VoucherDetail_Model()
+                                if (subitem.QtyTotal > 0)
                                 {
-                                    IdStorage = subitem.IdStorage,
-                                    QtyAuthorized = Convert.ToDecimal(subitem.QtyTotal),
-                                    IdVoucherDetail = idVoucherDetail
-                                });
-                            }
-                            i++;
-                        }
-                       else
-                        {
-                            countZeros++;
-                        }
-                    }
-                    if(countZeros == item.Storages.Count)
-                    {
-                        listVDM.Add(new VoucherDetail_Model()
-                        {
-                            IdStorage = 1,
-                            QtyAuthorized = 0,
-                            IdVoucherDetail = item.IdVoucherDetail
-                        });
-                    }
-                }
-
-                foreach(var item in listVDM)
-                {
-                    if (!diccionario.ContainsKey(item.IdStorage))
-                    {
-                        //diccionario[item.IdStorage] = new List<VoucherDetail_Model>();
-                        diccionario[item.IdVoucherDetail] = new List<VoucherDetail_Model>();
-                    }
-                    //diccionario[item.IdStorage].Add(item);
-                    diccionario[item.IdVoucherDetail].Add(item);
-                }
-
-                foreach (var item in diccionario)
-                {
-                    lstVDMList.Add(item.Value);
-                }
-
-                string msg = "";
-                if (lstVDMList.Count > 0)
-                {
-                    if (lstVDMList.Count > 1)
-                    {
-                        for (int i = 0; i < (lstVDMList.Count - 1); i++)
-                        {
-                            int idVoucherNew = InsertVoucher(idVoucher);
-                            if (idVoucherNew != 0)
-                            {
-                                foreach (var item in lstVDMList[i])
-                                {
-
-                                    int resUpdate = UpdateIdVoucher(idVoucherNew, item.IdVoucherDetail);
-                                    if (resUpdate == 0)
+                                    bool isConsignment = subitem.IdStorage == CONSIGNMENT_VIRTUAL_ID;
+                                    listVDM.Add(new VoucherDetail_Model()
                                     {
-                                        TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Sucedió un error inesperado: Id 0");
-                                        return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
-                                    }
-                                    else
-                                    {
-                                            if(status == 3)
-                                            {
-                                            item.QtyAuthorized = 0;
-                                            }
-                                        int resQty = UpdateQuantities(item.IdVoucherDetail, item.QtyAuthorized, item.IdStorage);
-                                        if (resQty == 0)
-                                        {
-                                            TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Sucedió un error inesperado, favor de intentarlo más tarde");
-                                            return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
-                                        }
-                                    }
-                                }
-                                if (lstVDMList[i][0].QtyAuthorized == 0)
-                                {
-                                    msg = UpdateAndAuthorize(idVoucherNew, lstVDMList[i][0].IdStorage, idSignatureFlow, 3, comment, idConcept);
-                                }
-                                else
-                                {
-                                    msg = UpdateAndAuthorize(idVoucherNew, lstVDMList[i][0].IdStorage, idSignatureFlow, status, comment, idConcept);
+                                        IdVoucherDetail = item.IdVoucherDetail,
+                                        QtyAuthorized = Convert.ToDecimal(subitem.QtyTotal),
+                                        IdStorage = isConsignment ? GENERAL_WAREHOUSE_ID : subitem.IdStorage,
+                                        IsFromConsignment = isConsignment
+                                    });
                                 }
                             }
-                            else
-                            {
-                                TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Sucedió un error inesperado: Id 0");
-                                return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
-                            }
                         }
-                    }
-                    foreach (var item in lstVDMList[lstVDMList.Count - 1])
-                    {
-                        if (status == 3)
-                        {
-                            item.QtyAuthorized = 0;
-                        }
-                        int resQty = UpdateQuantities(item.IdVoucherDetail, item.QtyAuthorized, item.IdStorage);
-                        if (resQty == 0)
-                        {
-                            TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Sucedió un error inesperado, favor de intentarlo más tarde");
-                            return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
-                        }
-                    }
-                    if (lstVDMList[lstVDMList.Count - 1][0].QtyAuthorized == 0)
-                    {
-                        msg = UpdateAndAuthorize(idVoucher, lstVDMList[lstVDMList.Count - 1][0].IdStorage, idSignatureFlow, 3, comment, idConcept);
-                    }
-                    else
-                    {
-                        msg = UpdateAndAuthorize(idVoucher, lstVDMList[lstVDMList.Count - 1][0].IdStorage, idSignatureFlow, status, comment, idConcept);
-                    }
 
+                        // 2. Agrupa los artículos por su almacén físico real
+                        var vouchersPorAlmacen = listVDM.GroupBy(d => d.IdStorage)
+                                                        .Select(g => g.ToList())
+                                                        .ToList();
+
+                        // 3. Procesa cada grupo como un vale separado
+                        // Si hay más de un almacén, crea vales nuevos
+                        if (vouchersPorAlmacen.Count > 1)
+                        {
+                            for (int i = 0; i < vouchersPorAlmacen.Count - 1; i++)
+                            {
+                                var valeParcial = vouchersPorAlmacen[i];
+                                int idVoucherNew = InsertVoucher(cnn, transaction, idVoucher);
+
+                                foreach (var item in valeParcial)
+                                {
+                                    UpdateIdVoucher(cnn, transaction, idVoucherNew, item.IdVoucherDetail);
+                                    UpdateQuantities(cnn, transaction, item, status);
+                                }
+
+                                int finalStatus = (valeParcial.All(item => item.QtyAuthorized == 0)) ? 3 : status;
+                                UpdateAndAuthorize(cnn, transaction, idVoucherNew, valeParcial.First().IdStorage, idSignatureFlow, finalStatus, comment, idConcept);
+                            }
+                        }
+
+                        // 4. Procesa el último (o único) grupo con el ID del vale original
+                        var ultimoVale = vouchersPorAlmacen.Last();
+                        foreach (var item in ultimoVale)
+                        {
+                            UpdateQuantities(cnn, transaction, item, status);
+                        }
+
+                        int ultimoStatus = (ultimoVale.All(item => item.QtyAuthorized == 0)) ? 3 : status;
+                        UpdateAndAuthorize(cnn, transaction, idVoucher, ultimoVale.First().IdStorage, idSignatureFlow, ultimoStatus, comment, idConcept);
+
+                        // --- COMMIT ---
+                        transaction.Commit();
+                        TempData["Message_Voucher"] = HomeController.ShowAlert("success", "El vale ha sido autorizado correctamente.");
+                    }
+                    catch (Exception ex)
+                    {
+                        // --- ROLLBACK ---
+                        transaction.Rollback();
+                        TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Ha sucedido un error y la operación fue revertida. <br>Error: " + ex.Message + ex.StackTrace);
+                    }
+                    return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
                 }
-                TempData["Message_Voucher"] = msg;
-                return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
-            }
-            catch (Exception ex)
-            {
-                TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Ha sucedido un error, favor de intentarlo más tarde. <br>Error: " + ex.ToString());
-                return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
             }
         }
 
+        // --- MÉTODOS PRIVADOS ---
         private int GetIdSignatureFlow()
         {
             int idSignatureFlow = 0;
             using (var cnn = new SqlConnection(connectionStringSQL))
             {
                 cnn.Open();
-                var cmd = new SqlCommand("AuthWorkflows.sp_SignatureFlow_SelIdSF", cnn)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
+                var cmd = new SqlCommand("AuthWorkflows.sp_SignatureFlow_SelIdSF", cnn) { CommandType = CommandType.StoredProcedure };
                 cmd.Parameters.Add("@idFlow", SqlDbType.Int).Value = 1;
                 cmd.Parameters.Add("@empNumber", SqlDbType.VarChar).Value = User.FindFirst("empNumber").Value.ToString();
-                using (var rd = cmd.ExecuteReader())
+                var result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value)
                 {
-                    rd.Read();
-                    idSignatureFlow = Convert.ToInt32(rd["idSignatureFlow"]);
+                    idSignatureFlow = Convert.ToInt32(result);
                 }
             }
             return idSignatureFlow;
         }
 
-        private int InsertVoucher(int idVoucherOld)
+        private void UpdateQuantities(SqlConnection cnn, SqlTransaction transaction, VoucherDetail_Model itemDetail, int status)
         {
-            int idVoucherNew = 0;
-            if (idVoucherOld == 0)
+            decimal qtyToAuth = (status == 3) ? 0 : itemDetail.QtyAuthorized;
+
+            // 1. Actualiza la cantidad autorizada en la línea del detalle
+            var cmdUpdateDetail = new SqlCommand("UPDATE VoucherRequest.VoucherDetail SET qtyAuthorized = @qty WHERE idVoucherDetail = @id", cnn, transaction);
+            cmdUpdateDetail.Parameters.AddWithValue("@qty", qtyToAuth);
+            cmdUpdateDetail.Parameters.AddWithValue("@id", itemDetail.IdVoucherDetail);
+            if (cmdUpdateDetail.ExecuteNonQuery() == 0)
+                throw new Exception($"No se pudo actualizar la cantidad autorizada para el detalle ID {itemDetail.IdVoucherDetail}.");
+
+            // 2. Obtiene el IdSupply para usarlo en la actualización de stock
+            var cmdGetSupply = new SqlCommand("SELECT idSupply FROM VoucherRequest.VoucherDetail WHERE idVoucherDetail = @id", cnn, transaction);
+            cmdGetSupply.Parameters.AddWithValue("@id", itemDetail.IdVoucherDetail);
+            int idSupply = (int)cmdGetSupply.ExecuteScalar();
+
+            // 3. Llama al SP correcto para descontar el stock
+            if (itemDetail.IsFromConsignment)
             {
-                return 0;
+                var cmd = new SqlCommand("VoucherRequest.sp_UpdateConsignmentStock", cnn, transaction) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@idSupply", idSupply);
+                cmd.Parameters.AddWithValue("@quantity", qtyToAuth);
+                cmd.ExecuteNonQuery();
             }
-            using (var cnn = new SqlConnection(connectionStringSQL))
+            else
             {
-                cnn.Open();
-                var cmd = new SqlCommand("VoucherRequest.sp_Voucher_InsByIdVoucher", cnn)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-                cmd.Parameters.Add("@idVoucher", SqlDbType.Int).Value = idVoucherOld;
-                using (var rd = cmd.ExecuteReader())
-                {
-                    rd.Read();
-                    idVoucherNew = Convert.ToInt32(rd["idVoucher"]);
-                }
+                var cmd = new SqlCommand("VoucherRequest.sp_UpdatePhysicalStock", cnn, transaction) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@idSupply", idSupply);
+                cmd.Parameters.AddWithValue("@idStorage", itemDetail.IdStorage);
+                cmd.Parameters.AddWithValue("@quantity", qtyToAuth);
+                cmd.ExecuteNonQuery();
             }
-            return idVoucherNew;
         }
 
-        private string UpdateAndAuthorize(int idVoucher, int idStorage, int idSignatureFlow, int idRequestStatus, string comment, int idConcept)
+        private void UpdateAndAuthorize(SqlConnection cnn, SqlTransaction transaction, int idVoucher, int idStorage, int idSignatureFlow, int idRequestStatus, string comment, int idConcept)
         {
-            if (idVoucher == 0 || idStorage == 0 || idRequestStatus == 0)
-            {
-                return HomeController.ShowAlert("danger", "Hubo un problema: ids 0");
-            }
-            string msg = "";
-            using (var cnn = new SqlConnection(connectionStringSQL))
-            {
-                cnn.Open();
-                var cmd = new SqlCommand("VoucherRequest.sp_Voucher_Auth", cnn)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-                cmd.Parameters.Add("@idVoucher", SqlDbType.Int).Value = idVoucher;
-                cmd.Parameters.Add("@idStorage", SqlDbType.Int).Value = idStorage;
-                cmd.Parameters.Add("@idRequestStatus", SqlDbType.Int).Value = idRequestStatus;
-                cmd.Parameters.Add("@idSignatureFlow", SqlDbType.Int).Value = idSignatureFlow;
-                cmd.Parameters.Add("@comment", SqlDbType.VarChar).Value = string.IsNullOrEmpty(comment) ? DBNull.Value : comment.Trim();
-                cmd.Parameters.Add("@idConcept", SqlDbType.Int).Value = idConcept;
-                using (var rd = cmd.ExecuteReader())
-                {
-                    rd.Read();
-                    msg = HomeController.ShowAlert(rd["color"].ToString(), rd["message"].ToString());
-                }
-                cnn.Close();
-            }
-            return msg;
+            var cmd = new SqlCommand("VoucherRequest.sp_Voucher_Auth", cnn, transaction) { CommandType = CommandType.StoredProcedure };
+            cmd.Parameters.AddWithValue("@idVoucher", idVoucher);
+            cmd.Parameters.AddWithValue("@idStorage", idStorage);
+            cmd.Parameters.AddWithValue("@idRequestStatus", idRequestStatus);
+            cmd.Parameters.AddWithValue("@idSignatureFlow", idSignatureFlow);
+            cmd.Parameters.AddWithValue("@comment", string.IsNullOrEmpty(comment) ? DBNull.Value : (object)comment.Trim());
+            cmd.Parameters.AddWithValue("@idConcept", idConcept);
+            cmd.ExecuteNonQuery();
         }
 
-        private int InsertVoucherDetail(int idVoucher, int idVoucherDetail, float qtyAuthorized)
+        private int InsertVoucher(SqlConnection cnn, SqlTransaction transaction, int idVoucherOld)
         {
-            int res = 0;
-            if(idVoucher == 0 || idVoucherDetail == 0 || qtyAuthorized <= 0)
-            {
-                return res;
-            }
-            using (var cnn = new SqlConnection(connectionStringSQL))
-            {
-                cnn.Open();
-                var cmd = new SqlCommand("VoucherRequest.sp_VoucherDetail_InsAuth", cnn)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-                cmd.Parameters.Add("@idVoucher", SqlDbType.Int).Value = idVoucher;
-                cmd.Parameters.Add("@idVoucherDetail", SqlDbType.Int).Value = idVoucherDetail;
-                cmd.Parameters.Add("@qtyAuthorized", SqlDbType.Decimal).Value = qtyAuthorized;
-                using (var rd = cmd.ExecuteReader())
-                {
-                    rd.Read();
-                    res = Convert.ToInt32(rd["res"]);
-                }
-            }
-                return res;
+            var cmd = new SqlCommand("VoucherRequest.sp_Voucher_InsByIdVoucher", cnn, transaction) { CommandType = CommandType.StoredProcedure };
+            cmd.Parameters.Add("@idVoucher", SqlDbType.Int).Value = idVoucherOld;
+
+            var result = cmd.ExecuteScalar();
+            int newId = (result != null && result != DBNull.Value) ? Convert.ToInt32(result) : 0;
+
+            if (newId <= 0) throw new Exception("No se pudo crear el nuevo vale a partir del original.");
+            return newId;
         }
 
-        private int UpdateIdVoucher(int idVoucherNew, int idVoucherDetail)
+        private void UpdateIdVoucher(SqlConnection cnn, SqlTransaction transaction, int idVoucherNew, int idVoucherDetail)
         {
-            if (idVoucherNew == 0 || idVoucherDetail == 0)
-            {
-                return 0;
-            }
-            int res = 0;
-            using (var cnn = new SqlConnection(connectionStringSQL))
-            {
-                cnn.Open();
-                var cmd = new SqlCommand("VoucherRequest.sp_VoucherDetail_UpdVoucher", cnn)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-                cmd.Parameters.Add("@idVoucher", SqlDbType.Int).Value = idVoucherNew;
-                cmd.Parameters.Add("@idVoucherDetail", SqlDbType.Int).Value = idVoucherDetail;
-                using (var rd = cmd.ExecuteReader())
-                {
-                    rd.Read();
-                    res = Convert.ToInt32(rd["res"]);
-                }
-                cnn.Close();
-
-            }
-            return res;
+            var cmd = new SqlCommand("UPDATE VoucherRequest.VoucherDetail SET idVoucher = @idVoucherNew WHERE idVoucherDetail = @idVoucherDetail", cnn, transaction);
+            cmd.Parameters.AddWithValue("@idVoucherNew", idVoucherNew);
+            cmd.Parameters.AddWithValue("@idVoucherDetail", idVoucherDetail);
+            if (cmd.ExecuteNonQuery() == 0)
+                throw new Exception($"No se pudo actualizar el IdVoucher para el detalle {idVoucherDetail}.");
         }
 
-        private int UpdateQuantities(int idVoucherDetail, decimal qtyAuthorized, int idStorage)
+        private int InsertVoucherDetail(SqlConnection cnn, SqlTransaction transaction, int idVoucher, int idVoucherDetail, float qtyAuthorized)
         {
-            int res = 0;
-            using (var cnn = new SqlConnection(connectionStringSQL))
-            {
-                cnn.Open();
-                var cmd = new SqlCommand("VoucherRequest.sp_VoucherDetail_UpdQtyAuth", cnn)
-                {
-                    CommandType = CommandType.StoredProcedure
-                };
-                cmd.Parameters.Add("@idVoucherDetail", SqlDbType.Int).Value = idVoucherDetail;
-                cmd.Parameters.Add("@qtyAuthorized", SqlDbType.Decimal).Value = qtyAuthorized;
-                cmd.Parameters.Add("@idStorage", SqlDbType.Int).Value = idStorage;
-                using (var rd = cmd.ExecuteReader())
-                {
-                    rd.Read();
-                    res = Convert.ToInt32(rd["res"]);
-                }
-                cnn.Close();
-            }
-            return res;
-        }
+            var cmd = new SqlCommand("VoucherRequest.sp_VoucherDetail_InsAuth", cnn, transaction) { CommandType = CommandType.StoredProcedure };
+            cmd.Parameters.AddWithValue("@idVoucher", idVoucher);
+            cmd.Parameters.AddWithValue("@idVoucherDetail", idVoucherDetail);
+            cmd.Parameters.AddWithValue("@qtyAuthorized", qtyAuthorized);
 
-        [HttpPost]
-        public JsonResult Update(List<VoucherDetail_ViewModel> lsvVDM, string voucherNumber)
-        {
-            var listVDM = new List<VoucherDetail_Model>();
-            string msg = "";
-            try 
-            {
-                foreach(var item in lsvVDM)
-                {
-                    foreach(var subitem in item.Storages)
-                    {
-                        if(subitem.QtyTotal > 0)
-                        {
-                            listVDM.Add(new VoucherDetail_Model()
-                            {
-                                IdStorage = subitem.IdStorage,
-                                QtyAuthorized = Convert.ToDecimal(subitem.QtyTotal),
-                                IdVoucherDetail = item.IdVoucherDetail,
-                                IdSupply = item.IdSupply
-                            });
-                        }
-                    }
-                }
+            var result = cmd.ExecuteScalar();
+            int newId = (result != null && result != DBNull.Value) ? Convert.ToInt32(result) : 0;
 
-                foreach (var item in listVDM)
-                {
-                    using (var cnn = new SqlConnection(connectionStringSQL))
-                    {
-                        cnn.Open();
-                        var cmd = new SqlCommand("VoucherRequest.sp_VoucherDetail_UpdRM", cnn);
-                        cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.Add("@idVoucherDetail", SqlDbType.Int).Value = item.IdVoucherDetail;
-                        cmd.Parameters.Add("@qtyAuthorized", SqlDbType.Decimal).Value = item.QtyAuthorized;
-                        cmd.Parameters.Add("@idStorage", SqlDbType.Int).Value = item.IdStorage;
-                        cmd.Parameters.Add("@idSupply", SqlDbType.Int).Value = item.IdSupply;
-                        cmd.Parameters.Add("@voucherNumber", SqlDbType.Char).Value = voucherNumber;
-                        cmd.Parameters.Add("@modifiedBy", SqlDbType.VarChar).Value = User.FindFirst("empNumber").Value.ToString();
-                        using (var rd = cmd.ExecuteReader())
-                        {
-                            rd.Read();
-                            msg = HomeController.ShowAlert(rd["color"].ToString(), rd["message"].ToString());
-                            if (rd["color"].ToString() == "warning")
-                            {
-                                cnn.Close();
-                                break;
-                            }
-                        }
-                        cnn.Close();
-                    }
-                }
-                TempData["Message_Voucher"] = msg;
-                return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
-            }
-            catch (Exception ex)
-            {
-                TempData["Message_Voucher"] = HomeController.ShowAlert("danger", "Ha sucedido un error, favor de intentarlo más tarde. <br>Error: " + ex.ToString());
-                return Json(new { RedirectUrl = Url.Action("Index", "Voucher") });
-            }
+            if (newId <= 0) throw new Exception("No se pudo insertar el nuevo detalle del vale.");
+            return newId;
         }
     }
 }

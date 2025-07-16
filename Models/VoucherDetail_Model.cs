@@ -16,6 +16,8 @@
 
         public int IdStorage { get; set; }
 
-        public int IdSupplySurplus { get; set; } 
+        public int IdSupplySurplus { get; set; }
+        public bool IsFromConsignment { get; set; }
+
     }
 }

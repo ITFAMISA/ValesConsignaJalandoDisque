@@ -61,8 +61,19 @@ namespace VoucherCapture.Controllers
                 cnn.Close();
             }
             return voucherM;
-        }      
-        
+        }
+        private bool IsConsignmentItem(int idSupply)
+        {
+            using (var cnn = new SqlConnection(connectionStringSQL))
+            {
+                cnn.Open();
+                var cmd = new SqlCommand("SELECT COUNT(*) FROM [VoucherRequest].[ConsignmentItems] WHERE IdSupply = @idSupply AND IsConsignment = 1", cnn);
+                cmd.Parameters.Add("@idSupply", SqlDbType.Int).Value = idSupply;
+                var count = (int)cmd.ExecuteScalar();
+                cnn.Close();
+                return count > 0;
+            }
+        }
         public IActionResult PrintView(string voucherNumber)
         {
             if(User.IsInRole("Lectura") || User.IsInRole("Operacional") || User.IsInRole("CentroCosto"))
@@ -239,40 +250,73 @@ namespace VoucherCapture.Controllers
                         });
                     }
                 }
+
                 if ((lstVDVM[0].IdRequestStatus == 2 && !User.IsInRole("Operacional") && !User.IsInRole("CentroCosto")) || rawMaterial)
                 {
                     foreach (var item in lstVDVM)
                     {
-                        var lstStorage = new List<Storage_ViewModel>();
-                        var cmdStorage = new SqlCommand("VoucherRequest.sp_Storage_SelByIdSupply", cnn)
+                        // Verificar si es artículo de consignación
+                        bool isConsignment = IsConsignmentItem(item.IdSupply);
+
+                        if (isConsignment)
                         {
-                            CommandType = CommandType.StoredProcedure
-                        };
-                        cmdStorage.Parameters.Add("@idSupply", SqlDbType.Int).Value = item.IdSupply;
-                        cmdStorage.Parameters.Add("@idVoucher", SqlDbType.Int).Value = !rawMaterial ? DBNull.Value : item.IdVoucher;
-                        using (var rd = cmdStorage.ExecuteReader())
-                        {
-                            while (rd.Read())
+                            // Para artículos de consignación, usar el nuevo procedimiento
+                            var lstStorageConsignment = new List<Storage_ViewModel>();
+                            var cmdConsignment = new SqlCommand("VoucherRequest.sp_Storage_SelConsignmentByIdSupply", cnn)
                             {
-                                lstStorage.Add(new Storage_ViewModel()
+                                CommandType = CommandType.StoredProcedure
+                            };
+                            cmdConsignment.Parameters.Add("@idSupply", SqlDbType.Int).Value = item.IdSupply;
+                            using (var rd = cmdConsignment.ExecuteReader())
+                            {
+                                while (rd.Read())
                                 {
-                                    IdStorage = Convert.ToInt32(rd["idStorage"]),
-                                    Name = Convert.ToString(rd["name"]),
-                                    QtyTotal = float.Parse(rd["qtyTotal"].ToString())
-                                });
+                                    lstStorageConsignment.Add(new Storage_ViewModel()
+                                    {
+                                        IdStorage = Convert.ToInt32(rd["idStorage"]),
+                                        Name = Convert.ToString(rd["name"]),
+                                        QtyTotal = float.Parse(rd["qtyTotal"].ToString())
+                                    });
+                                }
                             }
+                            item.Storages = lstStorageConsignment;
                         }
-                        item.Storages = lstStorage;
+                        else
+                        {
+                            // Para artículos normales, usar el procedimiento original
+                            var lstStorage = new List<Storage_ViewModel>();
+                            var cmdStorage = new SqlCommand("VoucherRequest.sp_Storage_SelByIdSupply", cnn)
+                            {
+                                CommandType = CommandType.StoredProcedure
+                            };
+                            cmdStorage.Parameters.Add("@idSupply", SqlDbType.Int).Value = item.IdSupply;
+                            cmdStorage.Parameters.Add("@idVoucher", SqlDbType.Int).Value = !rawMaterial ? DBNull.Value : item.IdVoucher;
+                            using (var rd = cmdStorage.ExecuteReader())
+                            {
+                                while (rd.Read())
+                                {
+                                    lstStorage.Add(new Storage_ViewModel()
+                                    {
+                                        IdStorage = Convert.ToInt32(rd["idStorage"]),
+                                        Name = Convert.ToString(rd["name"]),
+                                        QtyTotal = float.Parse(rd["qtyTotal"].ToString())
+                                    });
+                                }
+                            }
+                            item.Storages = lstStorage;
+                        }
                     }
                 }
                 cnn.Close();
             }
+
+            // El resto del método permanece igual...
             var lstVDVMList = new List<List<VoucherDetail_ViewModel>>();
             if (lstVDVM[0].IdRequestStatus != 2)
             {
                 var lstAux = lstVDVM.GroupBy(x => x.IdSupply);
                 var lstVDVMSum = new List<VoucherDetail_ViewModel>();
-                foreach(var item in lstAux)
+                foreach (var item in lstAux)
                 {
                     float sumaQty = item.Sum(x => x.QtyAuthorized);
                     var firstObj = item.First();
@@ -282,7 +326,8 @@ namespace VoucherCapture.Controllers
                 lstVDVM = lstVDVMSum;
                 lstAux = lstVDVM.GroupBy(x => x.IdRequestStatus);
                 lstVDVMList = lstAux.Select(x => x.ToList()).ToList();
-            } else
+            }
+            else
             {
                 lstVDVMList.Add(lstVDVM);
             }

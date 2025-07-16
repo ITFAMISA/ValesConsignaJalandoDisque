@@ -23,5 +23,6 @@
         public int Canceled { get; set; }
 
         public int RawMaterial { get; set; }
+
     }
 }

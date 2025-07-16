@@ -1,0 +1,655 @@
+﻿/* ============================================
+   CSS PERSONALIZADO PARA SISTEMA DE VALES CON CONSIGNACIÓN
+   ============================================ */
+
+/* Variables CSS para consistencia */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    --consignment-primary: #fd7e14;
+    --consignment-secondary: #ffc107;
+    --normal-item-primary: #0d6efd;
+    --normal-item-secondary: #6610f2;
+    --border-radius: 0.375rem;
+    --box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --transition: all 0.15s ease-in-out;
+}
+
+/* ============================================
+   ESTILOS GENERALES PARA VALES
+   ============================================ */
+
+.voucher-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.voucher-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+    color: white;
+    padding: 2rem 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+    .voucher-header h1 {
+        margin: 0;
+        font-weight: 300;
+        font-size: 2.5rem;
+    }
+
+    .voucher-header .voucher-number {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        margin-top: 0.5rem;
+    }
+
+/* ============================================
+   ESTILOS PARA SEPARACIÓN DE CONSIGNACIÓN
+   ============================================ */
+
+/* Badges distintivos */
+.consignment-badge {
+    background: linear-gradient(45deg, var(--consignment-primary), var(--consignment-secondary));
+    color: white;
+    font-weight: bold;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.normal-item-badge {
+    background: linear-gradient(45deg, var(--normal-item-primary), var(--normal-item-secondary));
+    color: white;
+    font-weight: bold;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Cards para separación visual */
+.normal-items-card {
+    border-left: 4px solid var(--primary-color);
+    box-shadow: var(--box-shadow-sm);
+    transition: var(--transition);
+}
+
+    .normal-items-card:hover {
+        box-shadow: var(--box-shadow);
+        transform: translateY(-2px);
+    }
+
+.consignment-items-card {
+    border-left: 4px solid var(--warning-color);
+    box-shadow: var(--box-shadow-sm);
+    transition: var(--transition);
+}
+
+    .consignment-items-card:hover {
+        box-shadow: var(--box-shadow);
+        transform: translateY(-2px);
+    }
+
+/* Headers de cards */
+.normal-items-header {
+    background: linear-gradient(90deg, var(--primary-color), rgba(13, 110, 253, 0.8));
+    color: white;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.consignment-items-header {
+    background: linear-gradient(90deg, var(--warning-color), rgba(255, 193, 7, 0.8));
+    color: var(--dark-color);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+/* ============================================
+   ESTILOS PARA TABLAS
+   ============================================ */
+
+.voucher-table {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow-sm);
+}
+
+    .voucher-table th {
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        background-color: var(--dark-color);
+        color: white;
+        border: none;
+        padding: 0.75rem 0.5rem;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .voucher-table td {
+        font-size: 0.9rem;
+        vertical-align: middle;
+        padding: 0.5rem;
+        border-color: rgba(0, 0, 0, 0.1);
+        transition: background-color 0.2s ease;
+    }
+
+    .voucher-table tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+
+/* Estilos específicos para tablas de consignación */
+.consignment-table th {
+    background: linear-gradient(90deg, var(--warning-color), rgba(255, 193, 7, 0.9));
+    color: var(--dark-color);
+}
+
+.consignment-table tbody tr:hover {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+/* ============================================
+   ESTADOS DE STOCK
+   ============================================ */
+
+.stock-critical {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border-left: 4px solid var(--danger-color);
+    color: var(--danger-color);
+}
+
+.stock-low {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+    border-left: 4px solid var(--warning-color);
+    color: #856404;
+}
+
+.stock-normal {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+    border-left: 4px solid var(--success-color);
+    color: var(--success-color);
+}
+
+.stock-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+    .stock-indicator.critical {
+        background-color: var(--danger-color);
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+    }
+
+    .stock-indicator.low {
+        background-color: var(--warning-color);
+        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.25);
+    }
+
+    .stock-indicator.normal {
+        background-color: var(--success-color);
+        box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.25);
+    }
+
+/* ============================================
+   INPUTS Y FORMULARIOS
+   ============================================ */
+
+.voucher-input {
+    border-radius: var(--border-radius);
+    border: 1px solid #ced4da;
+    transition: var(--transition);
+    font-size: 0.85rem;
+}
+
+    .voucher-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .voucher-input.is-invalid {
+        border-color: var(--danger-color);
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+    }
+
+    .voucher-input.is-valid {
+        border-color: var(--success-color);
+        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+    }
+
+/* Inputs específicos para consignación */
+.consignment-input {
+    border: 2px solid var(--warning-color);
+    background-color: rgba(255, 193, 7, 0.05);
+}
+
+    .consignment-input:focus {
+        border-color: var(--consignment-primary);
+        box-shadow: 0 0 0 0.25rem rgba(253, 126, 20, 0.25);
+    }
+
+/* ============================================
+   BOTONES
+   ============================================ */
+
+.btn-voucher-primary {
+    background: linear-gradient(45deg, var(--primary-color), var(--info-color));
+    border: none;
+    color: white;
+    font-weight: 500;
+    transition: var(--transition);
+    box-shadow: var(--box-shadow-sm);
+}
+
+    .btn-voucher-primary:hover {
+        background: linear-gradient(45deg, #0a58ca, #0aa2c0);
+        transform: translateY(-1px);
+        box-shadow: var(--box-shadow);
+        color: white;
+    }
+
+.btn-voucher-success {
+    background: linear-gradient(45deg, var(--success-color), #20c997);
+    border: none;
+    color: white;
+    font-weight: 500;
+    transition: var(--transition);
+    box-shadow: var(--box-shadow-sm);
+}
+
+    .btn-voucher-success:hover {
+        background: linear-gradient(45deg, #157347, #0f9876);
+        transform: translateY(-1px);
+        box-shadow: var(--box-shadow);
+        color: white;
+    }
+
+.btn-voucher-warning {
+    background: linear-gradient(45deg, var(--warning-color), var(--consignment-primary));
+    border: none;
+    color: var(--dark-color);
+    font-weight: 500;
+    transition: var(--transition);
+    box-shadow: var(--box-shadow-sm);
+}
+
+    .btn-voucher-warning:hover {
+        background: linear-gradient(45deg, #e0a800, #e8711c);
+        transform: translateY(-1px);
+        box-shadow: var(--box-shadow);
+        color: var(--dark-color);
+    }
+
+/* ============================================
+   MODALES
+   ============================================ */
+
+.voucher-modal .modal-content {
+    border-radius: var(--border-radius);
+    border: none;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+.voucher-modal .modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.voucher-modal .modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.consignment-modal .modal-header {
+    background: linear-gradient(90deg, var(--warning-color), rgba(255, 193, 7, 0.8));
+    color: var(--dark-color);
+}
+
+/* ============================================
+   ALERTAS Y NOTIFICACIONES
+   ============================================ */
+
+.voucher-alert {
+    border-radius: var(--border-radius);
+    border: none;
+    box-shadow: var(--box-shadow-sm);
+    animation: slideInRight 0.3s ease-out;
+}
+
+    .voucher-alert.alert-consignment {
+        background: linear-gradient(90deg, rgba(255, 193, 7, 0.15), rgba(253, 126, 20, 0.15));
+        border-left: 4px solid var(--warning-color);
+        color: #856404;
+    }
+
+    .voucher-alert.alert-normal {
+        background: linear-gradient(90deg, rgba(13, 110, 253, 0.15), rgba(102, 16, 242, 0.15));
+        border-left: 4px solid var(--primary-color);
+        color: #0a58ca;
+    }
+
+/* ============================================
+   INDICADORES DE PROGRESO
+   ============================================ */
+
+.stock-progress {
+    height: 8px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.stock-progress-bar {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+    .stock-progress-bar.critical {
+        background: linear-gradient(90deg, var(--danger-color), #ff6b8a);
+    }
+
+    .stock-progress-bar.low {
+        background: linear-gradient(90deg, var(--warning-color), #ffd93d);
+    }
+
+    .stock-progress-bar.normal {
+        background: linear-gradient(90deg, var(--success-color), #40e0d0);
+    }
+
+/* ============================================
+   ANIMACIONES
+   ============================================ */
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+    }
+}
+
+.validation-message {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+
+.loading-overlay {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 3rem;
+    height: 3rem;
+    border: 0.3em solid rgba(13, 110, 253, 0.25);
+    border-top: 0.3em solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1200px) {
+    .voucher-table th,
+    .voucher-table td {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.25rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .voucher-container {
+        padding: 0.5rem;
+    }
+
+    .voucher-header {
+        padding: 1.5rem 1rem;
+    }
+
+        .voucher-header h1 {
+            font-size: 2rem;
+        }
+}
+
+@media (max-width: 768px) {
+    .voucher-table th,
+    .voucher-table td {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.2rem;
+    }
+
+    .voucher-input {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .voucher-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .voucher-header .voucher-number {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .voucher-table {
+        font-size: 0.7rem;
+    }
+
+        .voucher-table th,
+        .voucher-table td {
+            padding: 0.3rem 0.15rem;
+        }
+
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    .voucher-header {
+        padding: 1rem;
+    }
+
+        .voucher-header h1 {
+            font-size: 1.5rem;
+        }
+}
+
+/* ============================================
+   ACCESIBILIDAD
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ============================================
+   UTILIDADES ESPECÍFICAS
+   ============================================ */
+
+.text-consignment {
+    color: var(--consignment-primary) !important;
+}
+
+.text-normal-item {
+    color: var(--normal-item-primary) !important;
+}
+
+.bg-consignment {
+    background-color: var(--consignment-primary) !important;
+}
+
+.bg-normal-item {
+    background-color: var(--normal-item-primary) !important;
+}
+
+.border-consignment {
+    border-color: var(--consignment-primary) !important;
+}
+
+.border-normal-item {
+    border-color: var(--normal-item-primary) !important;
+}
+
+.shadow-voucher {
+    box-shadow: var(--box-shadow) !important;
+}
+
+.rounded-voucher {
+    border-radius: var(--border-radius) !important;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .voucher-table {
+        box-shadow: none !important;
+    }
+
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+
+    .btn {
+        display: none !important;
+    }
+
+    .alert {
+        border: 1px solid #000 !important;
+        background: transparent !important;
+    }
+}
+
+/* ============================================
+   DARK MODE SUPPORT (OPCIONAL)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --light-color: #212529;
+        --dark-color: #f8f9fa;
+    }
+
+    .voucher-table td {
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .voucher-input {
+        background-color: #2d3748;
+        border-color: #4a5568;
+        color: #f8f9fa;
+    }
+
+    .card {
+        background-color: #2d3748;
+        border-color: #4a5568;
+    }
+}

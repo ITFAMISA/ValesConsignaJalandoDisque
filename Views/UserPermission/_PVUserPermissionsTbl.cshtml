@@ -1,0 +1,123 @@
+﻿@using VoucherCapture.ViewModel
+@model List<UserPermission_ViewModel>
+
+    @if (Model.Count == 0)
+{
+    <div class="alert alert-dark text-center" role="alert">
+        No hay datos
+    </div>
+}
+else
+{
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Correo</th>
+            <th>Departamento</th>
+            <th>Puesto</th>
+                @if (User.IsInRole("Administrador"))
+                {
+                    <th>Opciones</th>
+                }
+        </tr>
+    </thead>
+    <tbody class="table-group-divider">
+        @foreach (var item in Model)
+        {
+            <tr class="table-secondary">
+                <th>@item.User
+                        @{
+                            string colorBadge = "";
+                            foreach (var subitem in item.Permissions)
+                            {
+                                switch (subitem.IdPermission)
+                                {
+                                    case 1: colorBadge = "#633974"; break;
+                                    case 2: colorBadge = "#21618c"; break;
+                                    case 3: colorBadge = "#943126"; break;
+                                    case 4: colorBadge = "#979a9a"; break;
+                                    case 5: colorBadge = "#9c640c"; break;
+                                    case 6: colorBadge = "#148f77"; break;
+                                    case 7: colorBadge = "#0e6655"; break;
+                                }
+                                <span class="badge" style="background-color: @colorBadge">@subitem.Name</span>
+                            }
+                        }
+                    </th>
+                <td>@item.Email</td>
+                <td>@item.Department</td>
+                <td>@item.Role</td>
+                    @if (User.IsInRole("Administrador"))
+                    {
+                        <td>
+                            <div class="d-grid gap-2 d-md-block">
+                        <button class="btn btn-outline-danger btn-sm" type="button" onclick="Delete('@item.EmpNumber')">
+                            <i class="bi bi-x-square"> Eliminar</i>
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" type="button" onclick="Update('@item.EmpNumber')">
+                            <i class="bi bi-pencil-fill"> Editar</i>
+                        </button>
+                    </div>
+                </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+<br>
+    <div id="pages">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                @for (int i = ViewBag.MinPage; i <= ViewBag.MaxPage; i++)
+                {
+                    string activeClass = "";
+                    if (ViewBag.ActualPage == i)
+                    {
+                        activeClass = "active";
+                    }
+                    <li class="page-item @activeClass"><a class="page-link" data-page="@i">@i</a></li>
+
+                }
+            </ul>
+        </nav>
+        <p class="text-center" style="color: dimgray; font-size: 10px; font-style: italic">
+            Página @ViewBag.ActualPage de @ViewBag.Pages
+        </p>
+    </div>
+}
+
+<script>
+    $("#pages").on("click", ".page-link", function () {
+        var page = $(this).data("page");
+        GetData(page);
+    });
+
+    function Update(empNumber) {
+        $.ajax({
+            url: "/UserPermission/Update",
+            data: { empNumber: empNumber },
+            success: function (data) {
+                $("#Body").html(data);
+                $("#UpdateModal").modal('show');
+                $('#UpdateModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            }
+        });
+    }
+
+    function Delete(empNumber) {
+        $.ajax({
+            url: "/UserPermission/Delete",
+            data: { empNumber: empNumber },
+            success: function (data) {
+                $("#Body").html(data);
+                $("#DeleteModal").modal('show');
+                $('#DeleteModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            }
+        });
+    }
+</script>

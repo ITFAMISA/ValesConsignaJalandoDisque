@@ -1,0 +1,37 @@
+﻿@using VoucherCapture.ViewModel
+@model CostCenter_ViewModel
+
+
+<div class="modal fade" id="UpdateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Actualizar centro de costo</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-action="Update" asp-controller="CostCenter">
+                <div class="modal-body">
+                    <label class="form-label"><b>Centro de costo: </b>@Model.Description</label>
+                    <br />
+                    <label class="form-label"><b>Cliente: </b>@Model.Customer</label>
+                    <br />
+                    <label class="form-label"><b>Estatus: </b>@Model.Status</label>
+                    <br />
+                    <label class="form-label"><b>Cambiar estatus:</b></label>
+                    <select id="cmbPermission" class="form-select" asp-items="@ViewBag.CostCenterStatus" asp-for="IdCostCenterStatus"></select>
+                    <br />
+                    <label class="form-label"><b>Cambiar cliente:</b></label>
+                    <select id="cmbCostumer" class="form-select" asp-for="IdCustomer" asp-items="@ViewBag.Customers"></select>
+                    <br>
+                    <label class="form-label"><b>Fecha de expiración:</b> </label>
+                    <input class="form-control" type="date" asp-for="ExpiredDate" />
+                    <input type="hidden" asp-for="IdCostCenter" />
+                </div>
+                <div class="modal-footer" style="background-color:  #fcf3cf;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Regresar</button>
+                    <button id="btnSave" type="submit" class="btn btn-primary">Aceptar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,58 @@
+﻿@using VoucherCapture.ViewModel
+@model  List<List<VoucherDetail_ViewModel>>
+
+@foreach(var item in Model)
+{
+    @switch (item[0].IdRequestStatus)
+    {
+        case 1:
+            <h3>Aceptadas</h3>
+            break;
+        case 2:
+             <h3>Pendientes</h3>
+            break;
+        case 3:
+             <h3>Rechazadas</h3>
+            break;
+        case 4:
+            <h3>Canceladas</h3>
+            break;
+    }
+    <table class="table table-secondary table-sm table-bordered table-hover table-striped text-center">
+    <thead>
+        <tr>
+                <th rowspan="2" width="10%">Insumo</th>
+                <th rowspan="2" width="60%">Descripción</th>
+                <th colspan="2" width="20%">Cantidad</th>
+                <th rowspan="2" width="10%">Tipo de unidad</th>
+        </tr>
+        <tr>
+            <th>Solicitada</th>
+            <th>Autorizada</th>
+        </tr>
+    </thead>
+    <tbody>
+            @foreach(var subitem in item)
+            {
+                <tr>
+                    <td>@subitem.MicrosipKey</td>
+                    <td>@subitem.Supply</td>
+                    <td>@subitem.QtyRequested</td>
+                    @if (subitem.IdRequestStatus == 2)
+                    {
+                        <td>-</td>
+                    }
+                    else
+                    {
+                        <td>@subitem.QtyAuthorized</td>
+                    }
+                    <td>@subitem.UnitType</td>
+                </tr>
+            }
+        </tbody>
+        </table>
+    @if(Model.Count > 1)
+    {
+        <br />
+    }
+}

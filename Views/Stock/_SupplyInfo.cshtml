@@ -1,0 +1,112 @@
+﻿@using VoucherCapture.ViewModel
+@model Supply_ViewModel
+
+<div class="modal fade" id="InfoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">@Model.MicrosipKey</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <b>Descripcción:</b> @Model.Description
+                <br /><br />
+                <b>Línea:</b> @Model.SupplyLine
+                <br /><br />
+                <div class="row">
+                    <div class="col">
+                        @{
+                            string checkIn = Model.Inspection == 0 ? "" : "checked";
+                            string checkRM = Model.RawMaterial == 0 ? "" : "checked";
+                            string disable = "disabled";
+                            if (User.IsInRole("Administrador") || User.IsInRole("Almacen") || User.IsInRole("AlmacenMP"))
+                            {
+                                disable = "";
+                            }
+                        }
+                        <b>Cantidad Total:</b> @Model.QtyTotal
+                        <br /> <br />
+                        <div class="row">
+                            <div class="col-auto d-flex">
+                                <b>Inspección:</b>
+                            </div>
+                            <div class="col">
+                                <div>
+                                    <input class="form-check-input" type="checkbox" onclick="Update(@Model.IdSupply)" id="chbxInspection" @disable @checkIn>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col">
+                        <b>Tipo unidad:</b> @Model.UnitType
+                        <br /><br />
+                        <div class="row">
+                            <div class="col-auto d-flex">
+                                <b>Materia prima:</b>
+                            </div>
+                            <div class="col">
+                                <div>
+                                    <input class="form-check-input" type="checkbox" onclick="Update(@Model.IdSupply)" id="chbxRawMaterial" @disable @checkRM>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>                
+                <hr />
+                <br />
+                <div class="container">
+                    <table class="table table-secondary text-center table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th colspan="7">Almacenes</th>
+                            </tr>
+                            <tr>
+                                <th>GEN</th>
+                                <th>IMP</th>
+                                <th>M.P</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>@Model.General</td>
+                                <td>@Model.Importacion</td>
+                                <td>@Model.Mp</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="col-12 mx-auto d-grid">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+                                <script>
+                                    function Update(idSupply){
+                                        var insValue = 0;
+                                        if (document.getElementById('chbxInspection').checked) {
+                                            insValue = 1;
+                                        }
+                                        var rawValue = 0;
+                                        if (document.getElementById('chbxRawMaterial').checked) {
+                                            rawValue = 1;
+                                        }
+        $.ajax({
+            url: '/Stock/Update',
+            method: 'post',
+            data: { idSupply: idSupply, inspection: insValue, rawMaterial: rawValue },
+            success: function (data) {
+                alert('La inspección fue actualizada correctamente');
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+                                    }
+                                </script>

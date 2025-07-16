@@ -1,0 +1,58 @@
+﻿@using VoucherCapture.ViewModel
+@model List<CostCenter_ViewModel>
+
+@{
+    var ccModel = ViewBag.CostCenterModel as CostCenter_ViewModel;
+}
+
+<div class="modal fade modal-lg" id="InfoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Información del centro de costo</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label"><b>Centro de costo: </b>@ccModel.Description</label>
+                <br />
+                <label class="form-label"><b>Estatus del centro de costo: </b>@ccModel.Status</label>
+                <br />
+                <label class="form-label"><b>Fecha creación: </b>@ccModel.CreatedDate</label>
+                <br />
+                <label class="form-label"><b>Fecha expiración: </b>@ccModel.ExpiredDate</label>
+                <br /> <br />
+                @if(Model.Count == 0)
+                {
+                    <div class="alert alert-dark text-center" role="alert">
+                        No hay datos
+                    </div>
+                    
+                } else
+                {
+                    <table class="table table-sm table-secondary table-striped">
+                        <thead>
+                            <tr>
+                                <th scope="col">Nombre</th>
+                                <th scope="col">Fecha asignación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.User</td>
+                                    <td>@item.AddedDate</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+            <div class="modal-footer">
+                <div class="col-12 mx-auto d-grid">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

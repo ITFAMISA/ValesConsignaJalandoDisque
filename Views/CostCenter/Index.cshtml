@@ -1,0 +1,157 @@
+﻿@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string dis = User.IsInRole("Operacional") ? "disabled" : "";
+}
+
+<div class="row">
+    <div class="col">
+        <h2 style="text-align: center;">Centros de costo</h2>
+    </div>
+    @if (User.IsInRole("Administrador") || User.IsInRole("CentroCosto"))
+    {
+        <div class="col-auto d-flex">
+            <a style="color: #27ae60; border-color: transparent; cursor: pointer;" onclick="Create()" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Asignar CC">
+                <i class="bi bi-plus-lg" style="font-size: 32px"></i>
+            </a>
+        </div>
+    }
+</div>
+
+<hr />
+<div id="Body">@Html.Raw(TempData["Message_CCU"])</div>
+<div class="row justify-content-between">
+    <div class="input-group">
+        <input id="txtCc" type="text" maxlength="100" class="form-control" placeholder="Buscar por CC" autocomplete="off" />
+        @if (!User.IsInRole("Operacional"))
+        {
+            <input id="txtUser" type="text" maxlength="150" class="form-control" placeholder="Buscar por Trabajador" autocomplete="off" />
+            <select id="cmbCustomer" class="form-control" asp-items="@ViewBag.Customers"></select>
+        }
+        <select id="cmbStatus" class="form-control" asp-items="@ViewBag.CostCenterStatus"></select>
+    </div>
+</div>
+<div class="row align-items-center" style="text-align: center;">
+    <div class="col d-grid gap-2 mx-auto">
+        <button class="btn btn-outline-danger" onclick="ClearFilter()" type="button"><i class="bi bi-x-lg"></i> Limpiar filtros</button>
+    </div>
+    <div class="col-3">
+    </div>
+    <div class="col d-grid gap-2 mx-auto">
+        <button class="btn btn-outline-primary" type="button" onclick="GetData(1)"><i class="bi bi-search"></i> Buscar</button>
+    </div>
+</div>
+<br />
+<ul class="nav nav-underline justify-content-center" id="secondNavbar">
+    <li class="nav-item">
+        <a class="nav-link active" data-num="1">Centros de costo</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @dis" data-num="2">Usuarios</a>
+    </li>
+</ul>
+<br>
+<div id="partialViewContainer"></div>
+
+
+
+<script>
+    window.onload = function () {
+        GetData(1);
+    };
+
+    var secondNb = document.getElementById("secondNavbar");
+    var btns = secondNb.getElementsByTagName("a");
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener("click", function () {
+            (document.querySelector('.active')) ? document.querySelector('.active').classList.remove('active') : '';
+            this.classList.add('active');
+            GetData(1);
+        });
+    }
+
+    function GetData(page) {
+        $('#partialViewContainer').html('<div class="text-center"><div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div><h4>Cargando datos...</h4></div>');
+        var activeBtn = document.querySelector('.active');
+        var dataNum = activeBtn.getAttribute('data-num');
+        var url = '';
+        var cc = $("#txtCc").val();
+        var data = new Object();
+        var user = "";
+        if ('@User.IsInRole("Operacional")' == 'False') { 
+            user = $("#txtUser").val();
+            var cmbCustomer = document.getElementById("cmbCustomer");
+            var customer = cmbCustomer.options[cmbCustomer.selectedIndex].value;
+            data.idCustomer = customer;
+        } 
+        var cmbStatus = document.getElementById("cmbStatus");
+        var status = cmbStatus.options[cmbStatus.selectedIndex].value;
+        data.costCenter = cc;
+        data.idCostCenterStatus = status;
+        if (dataNum == 1) {
+            url += '/CostCenter/GetData';
+        } else {
+            url += '/CostCenterUser/GetData';
+            if ('@User.IsInRole("Operacional")' == 'False') {
+                data.user = user;
+            }
+        }
+        data.page = page;
+        $.ajax({
+            url: url,
+            method: "post",
+            data: data,
+            success: function (data) {
+                $("#partialViewContainer").html(data);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+
+    function ClearFilter(){
+        document.getElementById("txtCc").value = null;
+        if ('@User.IsInRole("Operacional")' == 'False') {
+            document.getElementById("txtUser").value = null;
+            var cmbCustomer = document.getElementById("cmbCustomer");
+            cmbCustomer.value = 0;
+        }
+        var cmbStatus = document.getElementById("cmbStatus");
+        cmbStatus.value = 0;
+        GetData(1);
+    }
+
+    $("#txtCc").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    $("#txtUser").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    function Create(){
+        $.ajax({
+            url: '/CostCenter/Create',
+            method: "get",
+            success: function (data) {
+                $("#Body").html(data);
+                $("#CreateModal").modal('show');
+                $('#CreateModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+</script>

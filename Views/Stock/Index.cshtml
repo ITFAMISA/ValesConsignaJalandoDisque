@@ -1,0 +1,631 @@
+﻿@{
+    ViewData["Title"] = "MicrosipView";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row">
+    @if (User.IsInRole("Administrador") || User.IsInRole("Firma") || User.IsInRole("Almacen") || User.IsInRole("AlmacenMP"))
+    {
+        <div class="col-auto d-flex">
+            <a style="color: #8a1bb6; border-color: transparent; cursor: pointer;" onclick="UpdateMicrosip()" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Actualizar existencias" >
+                <i class="bi bi-download" style="font-size: 32px"></i>
+            </a>
+        </div>
+    }
+    <div class="col">
+        <h2 style="text-align: center;">Existencias</h2>
+    </div>
+    <div class="col-auto d-flex">
+        <a style="color:  #85929e; border-color: transparent; cursor: pointer;" data-bs-toggle="collapse" href="#filter" role="button" aria-expanded="false" aria-controls="filter">
+            <i id="filterIcon" class="bi bi-filter" style="font-size: 32px" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Mostrar filtros"></i>
+        </a>
+    </div>
+</div>
+<hr />
+<br />
+@if (User.IsInRole("Administrador") || User.IsInRole("Almacen") || User.IsInRole("AlmacenMP"))
+{
+    <div class="card mb-3">
+        <div class="card-header bg-warning">
+            <h6 class="mb-0"><i class="bi bi-server"></i> Herramientas de Sistema</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="row g-3">
+                        <!-- Paso 1: Descarga -->
+                        <div class="col-md-3">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-success">Paso 1</h6>
+                                    <button id="btnExecuteProcess" class="btn btn-success w-100" onclick="executeSSHProcess()">
+                                        <i class="bi bi-play-circle"></i><br>
+                                        <small>Descargar inventario de Microsip</small>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Paso 2: Actualización -->
+                        <div class="col-md-3">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-primary">Paso 2</h6>
+                                    <button id="btnExecuteDownload" class="btn btn-primary w-100 mb-2" onclick="executeDownloadProcess()">
+                                        <i class="bi bi-download"></i><br>
+                                        <small>Actualizar Inventario Local</small>
+                                    </button>
+                                    <button id="btnExecuteJob" class="btn btn-warning w-100" onclick="executeSQLJob()">
+                                        <i class="bi bi-database"></i><br>
+                                        <small>Procesar en BD</small>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Paso 3: Impacto -->
+                        <div class="col-md-3">
+                            <div class="card border-danger">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-danger">Paso 3</h6>
+                                    <button id="btnExecuteUpload" class="btn btn-danger w-100" onclick="executeUploadProcess()">
+                                        <i class="bi bi-upload"></i><br>
+                                        <small>Impactar Vales en Microsip</small>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Utilidades -->
+                        <div class="col-md-3">
+                            <div class="card border-info">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-info">Utilidades</h6>
+                                    <button id="btnCheckConnection" class="btn btn-info w-100" onclick="checkSSHConnection()">
+                                        <i class="bi bi-wifi"></i><br>
+                                        <small>Verificar Conexión</small>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div id="sshStatus" class="alert alert-secondary p-2 mb-0">
+                        <small>Estado: Desconectado</small>
+                    </div>
+                </div>
+            </div>
+            <div id="sshOutput" class="mt-3" style="display: none;">
+                <h6>Salida del proceso:</h6>
+                <pre id="processOutput" class="bg-dark text-light p-3" style="max-height: 200px; overflow-y: auto;"></pre>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row justify-content-between">
+    <div class="col-9 flex-fill">
+        <div id="Body">@Html.Raw(TempData["Message_Stock"])</div>
+        <div id="partialViewContainer">
+        </div>
+    </div>
+    <div class="collapse col-3" id="filter">
+    <div style="background-color:  #eaecee; border: solid 2px #d5d8dc;">
+        <ol class="list-group list-group-flush">
+            <li class="list-group-item align-items-start">
+                <h3 style="text-align: center;">Filtrar</h3>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">Clave </div>
+                    <input id="txtMSKey" type="text" class="form-control">
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">Descripción </div>
+                    <input id="txtDescr" type="text" class="form-control">
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">Almacen </div>
+                    <select id="cmbStorage" asp-items="@ViewBag.Storages" class="form-control">
+                    </select>
+                </div>
+            </li>
+
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">Grupos de líneas </div>
+                    <select id="cmbGroupLine" asp-items="@ViewBag.GroupSupplyLines" class="form-control" onchange="FillCmbSupplyLine()">
+                    </select>
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">Líneas de artículos </div>
+                    <select id="cmbSupplyLine" class="form-control">
+                        <option value="0">-- Seleccionar línea --</option>
+                    </select>
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">Inspección </div>
+                    <div class="form-check form-check-inline">
+                        <input id="inspection1" class="form-check-input" type="checkbox" name="chbxInspection" value="1">
+                        <label class="form-check-label">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input id="inspection0" class="form-check-input" type="checkbox" name="chbxInspection" value="0">
+                        <label class="form-check-label">No</label>
+                    </div>
+                </div>
+            </li>
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">Artículo </div>
+                        <div class="form-check">
+                            <input id="rdbtnRowM" name="rdbtnMaterial" class="form-check-input" type="radio" value="1">
+                            <label class="form-check-label" for="flexCheckDefault">
+                                Materia prima
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input id="rdbtnWOM" name="rdbtnMaterial" class="form-check-input" type="radio" value="0">
+                            <label class="form-check-label" for="flexCheckChecked">
+                                Sin marcar
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input id="rdbtnAllS" name="rdbtnMaterial" class="form-check-input" type="radio" value="2" checked>
+                            <label class="form-check-label" for="flexCheckDefault">
+                                Todos
+                            </label>
+                        </div>
+                    </div>
+                </li>
+            <li class="list-group-item align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">Ordenar por</div>
+                    <div class="form-check">
+                        <input id="rdbtnDesc" name="rdbtnOrder" class="form-check-input" type="radio" value="3" checked>
+                        <label class="form-check-label" for="flexCheckDefault">
+                            Descripción
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input id="rdbtnQty" name="rdbtnOrder" class="form-check-input" type="radio" value="1">
+                        <label class="form-check-label" for="flexCheckChecked">
+                            Cantidad total
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input id="rdbtnMSKey" name="rdbtnOrder" class="form-check-input" type="radio" value="2">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            Clave
+                        </label>
+                    </div>
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">Opciones</div>
+                    <div class="d-grid gap-2 d-md-block justify-content-between">
+                        <a class="btn" onclick="ClearFilter()" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="Eliminar filtros"> <i class="bi bi-x-lg" style="font-size: 24px; color:#ca1f1f; border-color: transparent;"></i></a>
+                        <a class="btn" onclick="GetData(1)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="Buscar"> <i class="bi bi-search" style="font-size: 24px; color:#1f9bca; border-color: transparent;"></i></a>
+                    </div>
+                </div>
+            </li>
+        </ol>
+        <br />
+    </div>
+    </div>
+</div>
+
+<script>
+    var processInterval;
+
+    window.onload = function () {
+        FillCmbSupplyLine();
+        GetData(1);
+    };
+
+    $("#txtMSKey").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    $("#txtDescr").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    function FillCmbSupplyLine() {
+        var cmbGroupLine = document.getElementById("cmbGroupLine");
+        var groupLine = cmbGroupLine.options[cmbGroupLine.selectedIndex].value;
+        $.ajax({
+            url: '/Stock/ListSupplyLine',
+            data: { idGroupSupplyLine: groupLine},
+            method: "GET",
+            success: function (result) {
+                $("#cmbSupplyLine").empty();
+                var s = '<option value="0" selected>-- Seleccionar línea --</option>';
+                for (var i = 0; i < result.length; i++) {
+                    s += '<option value="' + result[i].idSupplyLine + '">' + result[i].name + '</option>';
+                }
+                $("#cmbSupplyLine").append(s);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                alert("Status: " + textStatus); alert("Error: " + errorThrown);
+                console.log(error);
+            }
+        });
+    }
+
+    function UpdateMicrosip(){
+        $('#partialViewContainer').html('<div class="text-center"><div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div><h4>Cargando datos...</h4></div>');
+        $.ajax({
+            url: '/Stock/UpdateData',
+            method: "get",
+            success: function (data) {
+                window.location.href = data.redirectUrl;
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+
+    function GetData(page) {
+        $('#partialViewContainer').html('<div class="text-center"><div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div><h4>Cargando datos...</h4></div>');
+        var cmbStorage = document.getElementById("cmbStorage");
+        var cmbGroupLine = document.getElementById("cmbGroupLine");
+        var cmbSupplyLine = document.getElementById("cmbSupplyLine");
+        var chbxInspection = document.getElementsByName('chbxInspection');
+        var msKey = $("#txtMSKey").val();
+        var descr = $("#txtDescr").val();
+        var orderBy = $("input[name='rdbtnOrder']:checked").val();
+        var rawMaterial = $("input[name='rdbtnMaterial']:checked").val();
+        var storage = cmbStorage.options[cmbStorage.selectedIndex].value;
+        var groupLine = cmbGroupLine.options[cmbGroupLine.selectedIndex].value;
+        var supplyLine = cmbSupplyLine.options[cmbSupplyLine.selectedIndex].value;
+        var inspection = "";
+        for (var i = 0; i < chbxInspection.length; i++) {
+            if (chbxInspection[i].checked) {
+                inspection += "," + chbxInspection[i].value;
+            }
+        }
+        if (inspection) { inspection = inspection.substring(1); }
+        $.ajax({
+            url: '/Stock/GetData',
+            method: "post",
+            data: { msKey: msKey, description: descr, orderBy: orderBy, inspection: inspection, storage: storage, groupLine: groupLine, supplyLine: supplyLine, rawMaterial: rawMaterial, page: page },
+            success: function (data) {
+                $("#partialViewContainer").html(data);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    };
+
+    function ClearFilter() {
+        var rdbtnQty = document.getElementById("rdbtnQty");
+        var rdbtnDesc = document.getElementById("rdbtnDesc");
+        var rdbtnMSKey = document.getElementById("rdbtnMSKey");
+        rdbtnQty.checked = false;
+        rdbtnDesc.checked = true;
+        rdbtnMSKey.checked = false;
+        var cmbStorage = document.getElementById("cmbStorage");
+        var cmbGroupLine = document.getElementById("cmbGroupLine");
+        var cmbSupplyLine = document.getElementById("cmbSupplyLine");
+        cmbStorage.value = 0;
+        cmbGroupLine.value = 0;
+        cmbSupplyLine.value = 0;
+        document.getElementById("inspection0").checked = false;
+        document.getElementById("inspection1").checked = false;
+        document.getElementById("txtMSKey").value = null;
+        document.getElementById("txtDescr").value = null;
+        var rdbtnRowM = document.getElementById("rdbtnRowM");
+        var rdbtnWOM = document.getElementById("rdbtnWOM");
+        var rdbtnAllS = document.getElementById("rdbtnAllS");
+        rdbtnRowM.checked = false;
+        rdbtnWOM.checked = false;
+        rdbtnAllS.checked = true;
+        FillCmbSupplyLine();
+        GetData(1);
+    }
+
+    function executeSSHProcess() {
+        var btn = document.getElementById('btnExecuteProcess');
+        var status = document.getElementById('sshStatus');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Iniciando proceso...';
+        status.className = 'alert alert-warning p-2 mb-0';
+        status.innerHTML = '<small>Estado: Iniciando MudVoucherSys.exe...</small>';
+
+        $.ajax({
+            url: '/SSH/ExecuteProcess',
+            method: 'POST',
+            success: function(data) {
+                if (data.success) {
+                    status.className = 'alert alert-info p-2 mb-0';
+                    status.innerHTML = '<small>Estado: Proceso iniciado, monitoreando...</small>';
+
+                    // Iniciar monitoreo del proceso
+                    startProcessMonitoring();
+                } else {
+                    status.className = 'alert alert-danger p-2 mb-0';
+                    status.innerHTML = '<small>Error: ' + data.message + '</small>';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-play-circle"></i> Ejecutar MudVoucherSys';
+                }
+            },
+            error: function() {
+                status.className = 'alert alert-danger p-2 mb-0';
+                status.innerHTML = '<small>Error: No se pudo conectar al servidor</small>';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-play-circle"></i> Ejecutar MudVoucherSys';
+            }
+        });
+    }
+
+    function startProcessMonitoring() {
+        var btn = document.getElementById('btnExecuteProcess');
+        var status = document.getElementById('sshStatus');
+
+        processInterval = setInterval(function() {
+            $.ajax({
+                url: '/SSH/CheckProcessStatus',
+                method: 'POST',
+                success: function(data) {
+                    if (data.success) {
+                        if (data.isRunning) {
+                            status.className = 'alert alert-warning p-2 mb-0';
+                            status.innerHTML = '<small>Estado: MudVoucherSys.exe ejecutándose...</small>';
+                        } else {
+                            status.className = 'alert alert-success p-2 mb-0';
+                            status.innerHTML = '<small>Estado: Proceso completado exitosamente</small>';
+                            stopProcessMonitoring();
+
+                            setTimeout(function() {
+                                status.className = 'alert alert-secondary p-2 mb-0';
+                                status.innerHTML = '<small>Estado: Desconectado</small>';
+                            }, 5000);
+                        }
+                    }
+                }
+            });
+        }, 2000); // Verificar cada 2 segundos
+    }
+
+    function stopProcessMonitoring() {
+        if (processInterval) {
+            clearInterval(processInterval);
+            processInterval = null;
+        }
+
+        var btn = document.getElementById('btnExecuteProcess');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-circle"></i> Ejecutar MudVoucherSys';
+    }
+
+    function checkSSHConnection() {
+        var btn = document.getElementById('btnCheckConnection');
+        var status = document.getElementById('sshStatus');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando...';
+
+        $.ajax({
+            url: '/SSH/CheckConnection',
+            method: 'POST',
+            success: function(data) {
+                if (data.success) {
+                    status.className = 'alert alert-success p-2 mb-0';
+                    status.innerHTML = '<small>Estado: Conexión exitosa</small>';
+
+                    setTimeout(function() {
+                        status.className = 'alert alert-secondary p-2 mb-0';
+                        status.innerHTML = '<small>Estado: Desconectado</small>';
+                    }, 3000);
+                } else {
+                    status.className = 'alert alert-danger p-2 mb-0';
+                    status.innerHTML = '<small>Error: ' + data.message + '</small>';
+                }
+            },
+            error: function() {
+                status.className = 'alert alert-danger p-2 mb-0';
+                status.innerHTML = '<small>Error: No se pudo verificar la conexión</small>';
+            },
+            complete: function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-wifi"></i> Verificar Conexión';
+            }
+        });
+    }
+        var downloadInterval;
+
+    function executeDownloadProcess() {
+        var btn = document.getElementById('btnExecuteDownload');
+        var status = document.getElementById('sshStatus');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Iniciando descarga...';
+        status.className = 'alert alert-warning p-2 mb-0';
+        status.innerHTML = '<small>Estado: Iniciando DownloadMicrosipData.exe...</small>';
+
+        $.ajax({
+            url: '/SSH/ExecuteDownloadProcess',
+            method: 'POST',
+            success: function(data) {
+                if (data.success) {
+                    status.className = 'alert alert-info p-2 mb-0';
+                    status.innerHTML = '<small>Estado: Descarga iniciada, monitoreando...</small>';
+                    startDownloadMonitoring();
+                } else {
+                    status.className = 'alert alert-danger p-2 mb-0';
+                    status.innerHTML = '<small>Error: ' + data.message + '</small>';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-download"></i> Ejecutar DownloadMicrosipData';
+                }
+            },
+            error: function() {
+                status.className = 'alert alert-danger p-2 mb-0';
+                status.innerHTML = '<small>Error: No se pudo conectar al servidor local</small>';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-download"></i> Ejecutar DownloadMicrosipData';
+            }
+        });
+    }
+
+    function startDownloadMonitoring() {
+        var btn = document.getElementById('btnExecuteDownload');
+        var status = document.getElementById('sshStatus');
+
+        downloadInterval = setInterval(function() {
+            $.ajax({
+                url: '/SSH/CheckDownloadProcessStatus',
+                method: 'POST',
+                success: function(data) {
+                    if (data.success) {
+                        if (data.isRunning) {
+                            status.className = 'alert alert-warning p-2 mb-0';
+                            status.innerHTML = '<small>Estado: DownloadMicrosipData.exe ejecutándose...</small>';
+                        } else {
+                            status.className = 'alert alert-success p-2 mb-0';
+                            status.innerHTML = '<small>Estado: Descarga completada exitosamente</small>';
+                            stopDownloadMonitoring();
+
+                            setTimeout(function() {
+                                status.className = 'alert alert-secondary p-2 mb-0';
+                                status.innerHTML = '<small>Estado: Desconectado</small>';
+                            }, 5000);
+                        }
+                    }
+                }
+            });
+        }, 2000);
+    }
+
+    function stopDownloadMonitoring() {
+        if (downloadInterval) {
+            clearInterval(downloadInterval);
+            downloadInterval = null;
+        }
+
+        var btn = document.getElementById('btnExecuteDownload');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-download"></i> Ejecutar DownloadMicrosipData';
+    }
+        function executeSQLJob() {
+        var btn = document.getElementById('btnExecuteJob');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Ejecutando Job...';
+
+        $.ajax({
+            url: '/SSH/ExecuteSQLJob',
+            method: 'POST',
+            data: { jobName: 'Merge_VoucherRequest' },
+            success: function(data) {
+                alert(data.message);
+            },
+            complete: function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-database"></i> Ejecutar Job SQL';
+            }
+        });
+    }
+        var uploadInterval;
+    function executeUploadProcess() {
+        if (!confirm("¿Estás seguro que deseas impactar los vales en Microsip? Esta acción no se puede revertir.")) {
+            return;
+        }
+
+        var btn = document.getElementById('btnExecuteUpload');
+        var status = document.getElementById('sshStatus');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Ejecutando...';
+        status.className = 'alert alert-warning p-2 mb-0';
+        status.innerHTML = '<small>Estado: Ejecutando UploadMicrosipData.exe...</small>';
+
+        $.ajax({
+            url: '/SSH/ExecuteUploadProcess',
+            method: 'POST',
+            success: function(data) {
+                if (data.success) {
+                    status.className = 'alert alert-success p-2 mb-0';
+                    status.innerHTML = '<small>Estado: Upload completado exitosamente</small>';
+
+                    setTimeout(function() {
+                        status.className = 'alert alert-secondary p-2 mb-0';
+                        status.innerHTML = '<small>Estado: Desconectado</small>';
+                    }, 5000);
+                } else {
+                    status.className = 'alert alert-danger p-2 mb-0';
+                    status.innerHTML = '<small>Error: ' + data.message + '</small>';
+                }
+            },
+            error: function() {
+                status.className = 'alert alert-danger p-2 mb-0';
+                status.innerHTML = '<small>Error: No se pudo conectar al servidor</small>';
+            },
+            complete: function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-upload"></i> Ejecutar UploadMicrosipData';
+            }
+        });
+    }
+    function startUploadMonitoring() {
+        var btn = document.getElementById('btnExecuteUpload');
+        var status = document.getElementById('sshStatus');
+
+        uploadInterval = setInterval(function() {
+            $.ajax({
+                url: '/SSH/CheckUploadProcessStatus',
+                method: 'POST',
+                success: function(data) {
+                    if (data.success) {
+                        if (data.isRunning) {
+                            status.className = 'alert alert-warning p-2 mb-0';
+                            status.innerHTML = '<small>Estado: UploadMicrosipData.exe ejecutándose...</small>';
+                        } else {
+                            status.className = 'alert alert-success p-2 mb-0';
+                            status.innerHTML = '<small>Estado: Upload completado exitosamente</small>';
+                            stopUploadMonitoring();
+
+                            setTimeout(function() {
+                                status.className = 'alert alert-secondary p-2 mb-0';
+                                status.innerHTML = '<small>Estado: Desconectado</small>';
+                            }, 5000);
+                        }
+                    }
+                }
+            });
+        }, 2000);
+    }
+
+    function stopUploadMonitoring() {
+        if (uploadInterval) {
+            clearInterval(uploadInterval);
+            uploadInterval = null;
+        }
+
+        var btn = document.getElementById('btnExecuteUpload');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-upload"></i> Ejecutar UploadMicrosipData';
+    }
+</script>

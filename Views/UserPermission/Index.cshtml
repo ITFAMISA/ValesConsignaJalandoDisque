@@ -1,0 +1,115 @@
+﻿
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col">
+        <h2 style="text-align: center;">Usuarios y permisos</h2>
+    </div>
+    @if (User.IsInRole("Administrador"))
+    {
+        <div class="col-auto d-flex">
+            <a style="color: #27ae60; border-color: transparent; cursor: pointer;" onclick="Create()" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Agregar usuario">
+                <i class="bi bi-plus-lg" style="font-size: 32px"></i>
+            </a>
+        </div>
+    }
+</div>
+<hr />
+<br />
+<div id="Body">@Html.Raw(TempData["Message_UsserPermission"])</div>
+<div class="input-group">
+    <input id="txtUser" type="text" class="form-control" placeholder="Buscar por usuario">
+    <input id="txtDpto" type="text" class="form-control" placeholder="Buscar por departamento">
+    <select id="cmbPermission" asp-items="@ViewBag.PermissionList" class="form-select">
+    </select>
+</div>
+<div class="row align-items-center" style="text-align: center;">
+    <div class="col d-grid gap-2 mx-auto">
+        <button class="btn btn-outline-danger" onclick="ClearFilter()" type="button"><i class="bi bi-x-lg"></i> Limpiar filtros</button>
+    </div>
+    <div class="col-auto d-flex">
+        <label style="margin-right: 5px;">Buscar por estatus:</label>
+        <div class="form-check form-check-inline">
+            <input id="rbtnAct" class="form-check-input" type="radio" name="status" value="1" checked>
+            <label class="form-check-label" for="status">Activos</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input id="rbtnIna" class="form-check-input" type="radio" name="status" value="0">
+            <label class="form-check-label" for="status">Eliminados</label>
+        </div>
+    </div>
+    <div class="col d-grid gap-2 mx-auto">
+        <button class="btn btn-outline-primary" type="button" onclick="GetData(1)"><i class="bi bi-search"></i> Buscar</button>
+    </div>
+</div>
+<br />
+<div id="partialViewContainer"></div>
+
+<script>
+    window.onload = function () {
+        GetData(1);
+    };
+
+    function Create(){
+        $.ajax({
+            url: "/UserPermission/Create",
+            success: function (data) {
+                $("#Body").html(data);
+                $("#CreateModal").modal('show');
+                $('#CreateModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            }
+        });
+    }
+
+    $("#txtUser").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    $("#txtDpto").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    function GetData(page) {
+        $('#partialViewContainer').html('<div class="text-center"><div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div><h4>Cargando datos...</h4></div>');
+        var user = $("#txtUser").val();
+        var department = $('#txtDpto').val();
+        var cmbPermission = document.getElementById("cmbPermission");
+        var idPermission = cmbPermission.options[cmbPermission.selectedIndex].value;
+        var status = $("input[name='status']:checked").val();
+        $.ajax({
+            url: '/UserPermission/GetData',
+            method: "post",
+            data: { user: user, idPermission: idPermission, department: department, status: status, page: page },
+            success: function (data) {
+                $("#partialViewContainer").html(data);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    };
+
+    function ClearFilter() {
+        document.getElementById("txtUser").value = null;
+        document.getElementById('txtDpto').value = null;
+        var cmbPermission = document.getElementById("cmbPermission");
+        cmbPermission.value = 0;
+        var rbtnAct = document.getElementById("rbtnAct");
+        var rbtnIna = document.getElementById("rbtnIna");
+        rbtnAct.checked = true;
+        rbtnIna.checked = false;
+        GetData(1);
+    };
+</script>

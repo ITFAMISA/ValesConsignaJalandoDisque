@@ -1,0 +1,149 @@
+﻿@using VoucherCapture.ViewModel
+@model UserPermission_ViewModel
+@{
+    List<Permission_Model> permissionList = ViewBag.PermissionList as List<Permission_Model>;
+}
+<div class="modal fade" id="UpdateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Actualizar permiso</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label"><b>Usuario: </b>@Model.User</label>
+                <br />
+                <label calss="form-label"><b>Puesto: </b> @Model.Role</label>
+                <br />
+                <label class="form-label"><b>Permisos:</b></label>
+                <br />
+                @foreach (var item in permissionList)
+                {
+                    string check = "";
+                    bool validacionPer = false;
+                    bool validaMatPrim = false;
+                    string checkMatPrim = "";
+                    foreach (var subitem in Model.Permissions)
+                    {
+                        if (item.IdPermission == subitem.IdPermission)
+                        {
+                            check = "checked";
+                            if (item.IdPermission == 2)
+                            {
+                                if(Model.matPrimOtros == 1)
+                                {
+                                    validaMatPrim = true;                                   
+                                }
+                                checkMatPrim = "checked";
+                                validacionPer = true;
+                            }
+                        }
+                    }
+
+                    var isOperacional = item.IdPermission == 2;
+                    var checkboxId = $"chk_{item.IdPermission}";
+                    var radiosDivId = $"radios_{item.IdPermission}";
+
+
+                    <div class="form-check">
+
+                        <input class="form-check-input operacional-check" name="chbxPermissions" type="checkbox" value="@item.IdPermission" id="@checkboxId"
+                        data-target="@radiosDivId" @check>
+                        <label class="form-check-label" for="flexCheckDefault">
+                            @item.Name
+                        </label>                      
+                    </div>
+                    @if (validacionPer == true)
+                    {
+                        <div id="@radiosDivId" class="mt-2 ms-4">
+                            @if (validaMatPrim == true)
+                            {
+                                <input type="radio" id="mp_@item.IdPermission" name="matPrimOtros" value="1" @checkMatPrim />
+                                <label for="mp_@item.IdPermission">Materia Prima</label>
+
+                                <input type="radio" id="ots_@item.IdPermission" name="matPrimOtros" value="0"  />
+                                <label for="ots_@item.IdPermission">Otros</label>
+                            }
+                            else
+                            {
+                                <input type="radio" id="mp_@item.IdPermission" name="matPrimOtros" value="1" />
+                                <label for="mp_@item.IdPermission">Materia Prima</label>
+
+                                <input type="radio" id="ots_@item.IdPermission" name="matPrimOtros" value="0" @checkMatPrim />
+                                <label for="ots_@item.IdPermission">Otros</label>
+                            }
+                        </div>
+                    }
+                }
+               
+
+
+                <br />
+                    <input type="hidden" id="txtEmpNumber" asp-for="EmpNumber" />
+                </div>
+                <div class="modal-footer" style="background-color:  #fcf3cf;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Regresar</button>
+                <button id="btnSave" type="button" class="btn btn-primary" onclick="UpdateUserPermission()">Aceptar</button>
+                </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function UpdateUserPermission() {
+        var chbxPermissions = document.getElementsByName('chbxPermissions');
+        var empNumber = $("#txtEmpNumber").val();
+        var matPrimOtros = $('input[name="matPrimOtros"]:checked').val() || null;
+        var data = {
+            empNumber: empNumber,
+            matPrimOtros: matPrimOtros,
+            permissions: []
+        };
+        for (var i = 0; i < chbxPermissions.length; i++) {
+            if (chbxPermissions[i]) {
+                var status = 0;
+                if (chbxPermissions[i].checked){
+                    status = 1;
+                }
+                data.permissions.push({
+                    idPermission: chbxPermissions[i].value,
+                    status: status
+                });
+            }
+        }
+        $.ajax({
+            url: '/UserPermission/Update',
+            method: "post",
+            data: { userModel: data },
+            success: function (data) {
+                window.location.href = data.redirectUrl;
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+
+     document.querySelectorAll('.operacional-check').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                const targetId = this.dataset.target;
+                const targetDiv = document.getElementById(targetId);
+
+                if (targetDiv) {
+                    const radios = targetDiv.querySelectorAll('input[type="radio"]');
+
+                    if (this.checked) {
+                        targetDiv.style.display = 'block';
+                        radios.forEach(r => r.required = true);
+                    } else {
+                        targetDiv.style.display = 'none';
+                        radios.forEach(r => {
+                            r.required = false;
+                            r.checked = false;
+                        });
+                    }
+                }
+            });
+        });
+</script>

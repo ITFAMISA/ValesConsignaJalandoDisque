@@ -1,0 +1,82 @@
+﻿@model List<Supply_Model>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-dark text-center" role="alert">
+        No hay datos
+    </div>
+}
+else
+{
+    <table class="table table-secondary table-striped-columns table-bordered text-center align-middle">
+        <thead>
+            <tr>
+                <th width="15%">Clave</th>
+                <th width="55%">Descripción</th>
+                <th width="10%">Tipo Unidad</th>
+                <th width="10%">Cantidad</th>
+                <th width="10%">Información</th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <th>@item.MicrosipKey</th>
+                    <td>@item.Description</td>
+                    <td>@item.UnitType</td>
+                    <td>@item.QtyTotal</td>
+                    <td>
+                        <div class="d-grid gap-2 d-md-block">
+                            <button class="btn btn-info btn-sm" onclick="Details(@item.IdSupply)">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <br />
+    <div id="pages">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                @for (int i = ViewBag.MinPage; i <= ViewBag.MaxPage; i++)
+                {
+                    string activeClass = "";
+                    if (ViewBag.ActualPage == i)
+                    {
+                        activeClass = "active";
+                    }
+                    <li class="page-item @activeClass"><a class="page-link" data-page="@i">@i</a></li>
+
+                }
+            </ul>
+        </nav>
+        <p class="text-center" style="color: dimgray; font-size: 10px; font-style: italic">
+            Página @ViewBag.ActualPage de @ViewBag.Pages
+        </p>
+    </div>
+}
+
+<script>
+    $("#pages").on("click", ".page-link", function () {
+        var page = $(this).data("page");
+        GetData(page);
+    });
+
+    function Details(idSupply) {
+        $.ajax({
+            url: "/Stock/SupplyInfo",
+            method: "post",
+            data: { idSupply: idSupply },
+            success: function (data) {
+                $("#Body").html(data);
+                $("#InfoModal").modal('show');
+                $('#InfoModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            }
+        });
+    }
+</script>

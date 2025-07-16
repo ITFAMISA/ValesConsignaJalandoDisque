@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - VoucherCapture</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/VoucherCapture.styles.css" asp-append-version="true" />
+
+    @*Adds*@
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+</head>
+<body style="background-color: #bdc3c7;">
+    <header>
+        <nav class="navbar bg-body-tertiary" style="background-color: #bdc3c7 !important;">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-auto d-flex align-items-center">
+                        <img src="/Images/logo2.jpg" width="50" height="50" />
+                    </div>
+                    <div class="col">
+                        <h1 style="color: black;">Sistema de vales</h1>
+                    </div>
+                </div>
+                <div class="navbar-text">
+                    <i class="bi bi-person-square" style="font-size: 20px"></i>
+                    @User.Identity.Name
+                </div>
+            </div>
+        </nav>
+        <div class="d-flex flex-column align-items-center align-items-sm-start px-3 pt-2" style="width: 4.5rem; position:fixed;">
+            <ul class="nav nav-pills nav-flush flex-column mb-auto text-center">
+                <li>
+                    <a class="nav-link py-3 border-bottom rounded-0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Todas las solicitudes" asp-action="Index" asp-controller="Voucher">
+                        <i class="bi bi-card-heading" style="font-size: 28px; color: #1a9ada"></i>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <div class="btn-group dropend">
+                        <button class="nav-link py-3 border-bottom rounded-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-plus-circle" style="font-size: 28px; color:#09a10d" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Crear vale"></i>
+                        </button>
+
+                        <ul class="dropdown-menu">
+                            @{
+                                var matPrimaClaim = User.Claims.FirstOrDefault(c => c.Type == "canAccessMateriaPrima");
+                                var canAccessMateriaPrima = matPrimaClaim != null && bool.TryParse(matPrimaClaim.Value, out var result) && result;
+                            }
+                            @if (User.IsInRole("Administrador") || User.IsInRole("Almacen") || User.IsInRole("AlmacenMP"))
+                            {
+                                <li><a class="dropdown-item" asp-action="Create" asp-controller="Voucher" asp-route-voucherType="1">Materia prima</a></li>
+                                <li><a class="dropdown-item" asp-action="Create" asp-controller="Voucher" asp-route-voucherType="0">Otro</a></li>
+                            }
+                            else if (User.IsInRole("Operacional") && canAccessMateriaPrima)
+                            {
+                                <li><a class="dropdown-item" asp-action="Create" asp-controller="Voucher" asp-route-voucherType="1">Materia prima</a></li>
+                            }
+                            else
+                            {
+                                <li><a class="dropdown-item" asp-action="Create" asp-controller="Voucher" asp-route-voucherType="0">Otro</a></li>
+                            }
+                        </ul>
+                    </div>
+                </li>
+                @if (User.IsInRole("Administrador") || User.IsInRole("Almacen") || User.IsInRole("AlmacenMP"))
+                {
+                    <li>
+                        <a class="nav-link py-3 border-bottom rounded-0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Exportar vales" asp-action="Index" asp-controller="Import">
+                            <i class="bi bi-upload" style="font-size: 28px; color: #ff8a14"></i>
+                        </a>
+                    </li>
+                }
+                <li>
+                    <a class="nav-link py-3 border-bottom rounded-0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Ver existencias" asp-action="Index" asp-controller="Stock">
+                        <i class="bi bi-boxes" style="font-size: 28px; color:#905d27"></i>
+                    </a>
+                </li>
+                @if (User.IsInRole("Administrador") || User.IsInRole("Almacen"))
+                {
+                    <li>
+                        <a class="nav-link py-3 border-bottom rounded-0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Artículos Consignación" asp-action="Index" asp-controller="Consignment">
+                            <i class="bi bi-box-seam" style="font-size: 28px; color: #ff6b35"></i>
+                        </a>
+                    </li>
+                }
+                <li>
+                    <a class="nav-link py-3 border-bottom rounded-0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Centros de costo" asp-action="Index" asp-controller="CostCenter">
+                        <img src="/Images/costcenter.png" width="28" height="28" />
+                    </a>
+                </li>
+                @if (User.IsInRole("Administrador") || User.IsInRole("Lectura"))
+                {
+                    <li>
+                        <a class="nav-link py-3 border-bottom rounded-0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Configuración" asp-action="Index" asp-controller="UserPermission">
+                            <i class="bi bi-gear-wide-connected" style="font-size: 28px; color:dimgray"></i>
+                        </a>
+                    </li>
+                }
+            </ul>
+            <div class="d-flex">
+                <a class="d-flex align-items-center justify-content-center p-3 link-body-emphasis text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Cerrar sesión" asp-action="LogOut" asp-controller="Access">
+                    <i class="bi bi-escape" style="font-size: 24px; color:#e11c1c"></i>
+                </a>
+            </div>
+        </div>
+
+    </header>
+    <div style="margin-left: 4.5rem; background-color:  #f0f3f4;">
+        <div class="container">
+            <main role="main" class="pb-3">
+                <br />
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

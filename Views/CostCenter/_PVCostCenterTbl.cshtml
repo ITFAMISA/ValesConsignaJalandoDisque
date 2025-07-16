@@ -1,0 +1,123 @@
+﻿@using VoucherCapture.ViewModel
+@model List<CostCenter_ViewModel>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-dark text-center" role="alert">
+        No hay datos
+    </div>
+}
+else
+{
+    <table class="table text-center table-striped table-bordered align-items-center">
+        <thead>
+            <tr class="table-primary">
+                <th scope="col">Clave</th>
+                <th scope="col">Descripción</th>
+                <th scope="col">Fecha creado</th>
+                <th scope="col">Estatus</th>
+                @if (!User.IsInRole("Operacional"))
+                {
+                    <th scope="col">Opciones</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                string icon = "";
+                switch (item.IdCostCenterStatus)
+                {
+                    case 1: icon = "bi-check-circle"; break;
+                    case 2: icon = "bi-play-circle"; break;
+                    case 3: icon = "bi-x-circle"; break;
+                }
+                <tr>
+                    <td>@item.MicrosipKey</td>
+                    <td>@item.Description</td>
+                    <td>@item.CreatedDate</td>
+                    <td><i class="bi @icon"></i></td>
+                    @if (!User.IsInRole("Operacional"))
+                    {
+                        <td>
+                            <div class="d-grid gap-2 d-md-flex justify-content-center">
+
+                                @if (User.IsInRole("Administrador") || User.IsInRole("CentroCosto"))
+                                {
+                                    <button class="btn btn-outline-warning btn-sm" type="button" onclick="UpdateCC(@item.IdCostCenter)"><i class="bi bi-pencil"></i></button>
+                                }
+                                <button class="btn btn-outline-info btn-sm" type="button" onclick="InfoCC(@item.IdCostCenter)"><i class="bi bi-info-circle"></i></button>
+                            </div>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+    <br />
+    <div id="pages">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                @for (int i = ViewBag.MinPage; i <= ViewBag.MaxPage; i++)
+                {
+                    string activeClass = "";
+                    if (ViewBag.ActualPage == i)
+                    {
+                        activeClass = "active";
+                    }
+                    <li class="page-item @activeClass"><a class="page-link" data-page="@i">@i</a></li>
+
+                }
+            </ul>
+        </nav>
+        <p class="text-center" style="color: dimgray; font-size: 10px; font-style: italic">
+            Página @ViewBag.ActualPage de @ViewBag.Pages
+        </p>
+    </div>
+}
+
+<script>
+    $("#pages").on("click", ".page-link", function () {
+        var page = $(this).data("page");
+        GetData(page);
+    });
+
+    function InfoCC(idCostCenter) {
+        $.ajax({
+            url: '/CostCenterUser/InfoModal',
+            data: { idCostCenter: idCostCenter },
+            method: "get",
+            success: function (data) {
+                $("#Body").html(data);
+                $("#InfoModal").modal('show');
+                $('#InfoModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+                console.log("SuperError: " + XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    function UpdateCC(idCostCenter) {
+        $.ajax({
+            url: '/CostCenter/Update',
+            data: { idCostCenter: idCostCenter },
+            method: "get",
+            success: function (data) {
+                $("#Body").html(data);
+                $("#UpdateModal").modal('show');
+                $('#UpdateModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+</script>

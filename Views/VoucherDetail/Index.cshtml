@@ -1,0 +1,133 @@
+﻿@using VoucherCapture.ViewModel
+@model VoucherC_ViewModel
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string pickedUp = Model.PickedUp == false ? "bi bi-circle" : "bi bi-circle-fill";
+    string msgPic = Model.PickedUp == false ? "Sin entregar" : "Entregado";
+}
+
+<div class="row">
+    <div class="col-auto d-flex">
+        <a style="color: gray; border-color: transparent; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Regresar" asp-action="Index" asp-controller="Voucher">
+            <i class="bi bi-arrow-left" style="font-size: 32px"></i>
+        </a>
+    </div>
+    <div class="col">
+        <h2 style="text-align: center;">
+            Folio @Model.VoucherNumber            
+            @if (!User.IsInRole("Operacional") && !User.IsInRole("CentroCosto"))
+            {
+                @if (Model.Canceled == 0)
+                {
+                    <i class="@pickedUp" style="font-size: 16px; color: #6ed6d8;" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="@msgPic"></i>
+                }
+                else
+                {
+                    <i class="bi bi-circle-fill" style="font-size: 16px; color: #ea5757;" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Cancelado"></i>
+                }
+            }
+        </h2>
+    </div>
+</div>
+<hr />
+<br />
+<div id="Body"></div>
+<div class="container" style="background-color: #ebedef; border-radius: 10px">
+    <br />
+    <h3>Datos de la solicitud</h3>
+    <div style="margin: 10px">
+        <div class="row">
+            <div class="col">
+                <p><b>Fecha de solicitud:</b> @Model.RequestedDate</p>
+            </div>
+            <div class="col">
+                <p><b>C.C:</b> @Model.Cc</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <p><b>Solicita: </b>@Model.RequestedBy</p>
+            </div>
+            <div class="col">
+                <p><b>Recibe: </b>@Model.PickedUpBy</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <p><b>Fecha autorización:</b> @Model.AuthorizationDate</p>
+            </div>
+            <div class="col">
+                <p><b>Autorizó:</b> @Model.AuthorizedBy</p>
+            </div>
+        </div>
+        <div>
+            <p><b>Comentario:</b> @Model.Comment</p>
+        </div>
+        <hr />
+        <div id="partialViewContainer"></div>
+    </div>
+    <br />
+    @if ((User.IsInRole("Administrador") || User.IsInRole("Firma") || User.IsInRole("Almacen") || User.IsInRole("AlmacenMP")) && Model.AuthorizedBy != "-")
+    {
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            @if ((User.IsInRole("Administrador") || User.IsInRole("Almacen") || User.IsInRole("AlmacenMP")) && (Model.Canceled == 0 && Model.PickedUp == false))
+            {
+                <button type="button" class="btn btn-danger" onclick="CancelVoucher()"><i class="bi bi-x-lg"></i> Cancelar</button>
+            }
+            @if (Model.Canceled == 0)
+            {
+                <button type="button" class="btn btn-secondary" onclick="PrintVoucher()"><i class="bi bi-printer"></i> Imprimir</button>
+            }
+        </div>
+    }
+</div>
+
+<script>
+    window.onload = function () {
+        GetData('@Model.VoucherNumber');
+    }
+
+    function GetData(voucherNumber) {
+        $('#partialViewContainer').html('<div class="text-center"><div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div><h4>Cargando datos...</h4></div>');
+        $.ajax({
+            url: '/VoucherDetail/GetData',
+            method: "post",
+            data: { voucherNumber: voucherNumber, authorized: @ViewBag.Authorized, canceled: @ViewBag.Canceled },
+            success: function (data) {
+                $("#partialViewContainer").html(data);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + XMLHttpRequest.responseText);
+            }
+        });
+    }
+
+    function PrintVoucher() {
+        var win = window.open("/VoucherDetail/PrintView?voucherNumber=" + '@Model.VoucherNumber', '_blank');
+        win.focus();
+        window.location.href = "/Voucher";
+    }
+
+    function CancelVoucher() {
+        $.ajax({
+            url: '/VoucherDetail/Cancel',
+            method: "get",
+            data: { voucherNumber: '@Model.VoucherNumber' },
+            success: function (data) {
+                $("#Body").html(data);
+                $("#DeleteModal").modal('show');
+                $('#DeleteModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+</script>

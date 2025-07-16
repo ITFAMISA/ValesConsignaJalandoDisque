@@ -1,0 +1,105 @@
+﻿@using VoucherCapture.ViewModel
+@model List<List<VoucherDetail_ViewModel>>
+
+
+<table class="table table-secondary table-sm table-bordered table-hover table-striped text-center align-middle">
+    <thead>
+        <tr>
+            <th rowspan="2" width="10%">Insumo</th>
+            <th rowspan="2" width="46%">Descripción</th>
+            <th colspan="6" width="39%">Almacén</th>
+            <th rowspan="2" width="5%">T. U.</th>
+        </tr>
+        <tr>
+            <th colspan="2">Gral</th>
+            <th colspan="2">Imp</th>
+            <th colspan="2">M.P</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            if (item[0].IdRequestStatus == 1)
+            {
+                foreach (var subitem in item)
+                {
+                    <tr name="supplies" data-id="@subitem.IdVoucherDetail" data-supply="@subitem.IdSupply">
+                        <td>@subitem.MicrosipKey</td>
+                        <td>@subitem.Supply</td>
+                        @foreach (var storage in subitem.Storages)
+                        {
+                            string dis = storage.QtyTotal == 0 ? "disabled" : "";
+                            <td>
+                                <input class="form-control" type="number" name="txtQtyAS" step="0.001" data-storage="@storage.IdStorage" data-qtyTotal="@storage.QtyTotal" @dis />
+                            </td>
+                            <td>
+                                @storage.QtyTotal
+                            </td>
+                        }
+                        <td>@subitem.UnitType</td>
+                    </tr>
+                }
+            }
+        }
+    </tbody>
+</table>
+<br />
+<div class="d-grid gap-2 d-md-flex justify-content-md-end">
+    <button type="button" class="btn btn-success" onclick="Authorize(1)"><i class="bi bi-check2"></i> Aceptar</button>
+</div>
+
+<script>
+    function Authorize(status) {
+        var result = confirm("¿Está seguro de cerrar el vale?");
+        if (result) {
+            var rowsTbl = document.getElementsByName('supplies');
+            var data = [];
+            var hasError = false;
+            for (var i = 0; i < rowsTbl.length; i++) {
+                var inputs = rowsTbl[i].querySelectorAll('input[name="txtQtyAS"]');
+                var rowData = {
+                    idVoucherDetail: rowsTbl[i].getAttribute('data-id'),
+                    idSupply: rowsTbl[i].getAttribute('data-supply'),
+                    storages: []
+                };
+                var sum = 0;
+                var qtyReq = parseFloat(rowsTbl[i].getAttribute('data-qtyReq'));
+                for (var j = 0; j < inputs.length; j++) {
+                    if (parseFloat(inputs[j].value) <= 0) {
+                        hasError = true;
+                        alert('Se debe de aceptar una cantidad mayor a 0.');
+                        inputs[j].focus();
+                        break;
+                    }
+                    var qtyTotal = inputs[j].getAttribute('data-qtyTotal');
+                    if (parseFloat(inputs[j].value) > parseFloat(qtyTotal)) {
+                        hasError = true;
+                        alert('No se puede aceptar una cantidad mayor a la existente.');
+                        inputs[j].focus();
+                        break;
+                    }
+                    rowData.storages.push({
+                        qtyTotal: inputs[j].value,
+                        idStorage: inputs[j].getAttribute('data-storage')
+                    });
+                    sum += inputs[j].value;
+                }
+                data.push(rowData);
+            }
+            if (!hasError) {
+                $.ajax({
+                    url: '/Authorize/Update',
+                    method: "post",
+                    data: { lsvVDM: data, voucherNumber: '@ViewBag.VoucherNumber' },
+                    success: function (data) {
+                        window.location.href = data.redirectUrl;
+                    },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        console.log("Status: " + textStatus);
+                        console.log("Error: " + errorThrown);
+                    }
+                });
+            }
+        }
+    }
+</script>

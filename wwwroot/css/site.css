@@ -1,0 +1,119 @@
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+.imgLogo {
+    background: url(../Images/logo2-1.jpg);
+    background-size: cover;
+    width: 50px;
+    height: 64px;
+}
+
+.imgLogoPrint {
+    background: url(../Images/logo2.jpg);
+    background-size: cover;
+    border: 0;
+}
+
+.select2-selection {
+    height: 38px !important;
+}
+
+.list-group-item.align-items-start {
+    background-color: #eaecee !important;
+    border-color: #d5d8dc !important;
+}
+
+.card-header.bg-warning + .card-body {
+    background-color: #fef9e7;
+}
+
+    .card-header.bg-warning + .card-body + .card-footer {
+        background-color: #f6f1e0;
+    }
+
+.card-header.bg-primary + .card-body {
+    background-color: #eafaf1;
+}
+
+    .card-header.bg-primary + .card-body + .card-footer {
+        background-color: #e5f3eb;
+    }
+
+.card-header.bg-danger + .card-body {
+    background-color: #fdedec;
+}
+
+
+.card-header.bg-info + .card-body {
+    background-color: #e8f6f3;
+}
+
+    .card-header.bg-info + .card-body + .card-footer {
+        background-color: #e0ecea;
+    }
+
+.card-header.bg-dark + .card-body {
+    background-color: #f5eef8;
+}
+
+    .card-header.bg-dark + .card-body + .card-footer {
+        background-color: #ece5ee;
+    }
+
+.formAdd {
+    background-color: #d4efdf;
+    border: solid 2px #7dcea0;
+    border-radius: 20px
+}
+
+#InfoModal .modal-dialog .modal-content {
+    border: 2px solid #2980b9;
+}
+
+    #InfoModal .modal-dialog .modal-content .modal-header,
+    #InfoModal .modal-dialog .modal-content .modal-footer {
+        background-color: #eaf2f8;
+    }
+
+#DeleteModal .modal-dialog .modal-content {
+    border: 2px solid #ec7063;
+}
+
+    #DeleteModal .modal-dialog .modal-content .modal-header,
+    #DeleteModal .modal-dialog .modal-content .modal-footer {
+        background-color: #fadbd8;
+    }
+
+#UpdateModal .modal-dialog .modal-content {
+    border: 2px solid #f7dc6f;
+}
+
+    #UpdateModal .modal-dialog .modal-content .modal-header,
+    #UpdateModal .modal-dialog .modal-content .modal-footer {
+        background-color: #fcf3cf;
+    }
+
+#CreateModal .modal-dialog .modal-content {
+    border: 2px solid #52be80;
+}
+
+    #CreateModal .modal-dialog .modal-content .modal-header,
+    #CreateModal .modal-dialog .modal-content .modal-footer {
+        background-color: #d4efdf;
+    }

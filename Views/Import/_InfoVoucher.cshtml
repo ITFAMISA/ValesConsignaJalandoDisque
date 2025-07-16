@@ -1,0 +1,85 @@
+﻿@using VoucherCapture.ViewModel
+@model List<VoucherDetail_ViewModel>
+@{
+    VoucherC_ViewModel vouchModel = ViewBag.VoucherModel as VoucherC_ViewModel;
+}
+
+<div class="modal fade" id="InfoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Información del vale</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+               <div class="container">
+                   <div class="row">
+                       <div class="col">
+                           <label class="form-label"><b>C. C:</b> @vouchModel.Cc</label>
+                       </div>
+                        <div class="col">
+                            <label class="form-label"><b>Almacén:</b> @vouchModel.Storage</label>
+                        </div>
+                   </div>
+                    <div class="row">
+                        <div class="col">
+                            <label class="form-label"><b>Concepto:</b> @vouchModel.Concept</label>
+                        </div>
+                        <div class="col">
+                            <label class="form-label"><b>Recibió:</b> @vouchModel.PickedUpBy</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <label class="form-label"><b>Solicitó:</b> @vouchModel.RequestedBy</label>
+                        </div>
+                        <div class="col">
+                            <label class="form-label"><b>Fecha solicitud:</b> @vouchModel.RequestedDate</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <label class="form-label"><b>Autorizó:</b> @vouchModel.AuthorizedBy</label>
+                        </div>
+                        <div class="col">
+                            <label class="form-label"><b>Fecha autorización:</b> @vouchModel.AuthorizationDate</label>
+                        </div>
+                    </div>
+                    <label class="form-label"><b>Comentario:</b> @vouchModel.Comment</label>
+                    <hr />
+                    <table class="table table-sm table-striped table-bordered text-center align-middle">
+                        <thead>
+                            <tr class="table-secondary">
+                               <th rowspan="2">Insumo</th>
+                                <th rowspan="2">Descripción</th>
+                                <th colspan="2">Cantidad</th>
+                                <th rowspan="2">Tipo Unidad</th>
+                            </tr>
+                            <tr class="table-secondary">
+                                <th>Solicitada</th>
+                                <th>Autorizada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.MicrosipKey</td>
+                                    <td>@item.Supply</td>
+                                    <td>@item.QtyRequested</td>
+                                    <td>@item.QtyAuthorized</td>
+                                    <td>@item.UnitType</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+               </div>
+            </div>
+            <div class="modal-footer">
+                <div class="col-12 mx-auto d-grid">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

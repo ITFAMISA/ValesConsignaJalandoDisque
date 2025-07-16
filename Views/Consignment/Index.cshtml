@@ -1,0 +1,318 @@
+﻿@{
+    ViewData["Title"] = "Consignación";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col">
+        <h2 style="text-align: center;">Artículos de Consignación</h2>
+    </div>
+    <div class="col-auto d-flex">
+        <a style="color: #85929e; border-color: transparent; cursor: pointer;" data-bs-toggle="collapse" href="#filter" role="button" aria-expanded="false" aria-controls="filter">
+            <i id="filterIcon" class="bi bi-filter" style="font-size: 32px" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Mostrar filtros"></i>
+        </a>
+    </div>
+</div>
+<hr />
+<br />
+
+<div id="Body">
+    @if (TempData["Message_Consignment"] != null)
+    {
+        @Html.Raw(TempData["Message_Consignment"])
+    }
+</div>
+
+<!-- Quick Search Bar -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input id="quickSearchKey" type="text" class="form-control" placeholder="Buscar por clave rápida...">
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-card-text"></i></span>
+            <input id="quickSearchDesc" type="text" class="form-control" placeholder="Buscar por descripción...">
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="d-grid gap-2 d-md-flex">
+            <button class="btn btn-primary" onclick="quickSearch()" type="button">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+            <button class="btn btn-outline-secondary" onclick="clearQuickSearch()" type="button">
+                <i class="bi bi-x-lg"></i> Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center">
+                    <i class="bi bi-check-circle text-success" style="font-size: 2rem; margin-right: 10px;"></i>
+                    <div>
+                        <h5 class="card-title text-success mb-0">Stock Normal</h5>
+                        <h2 class="text-success mb-0" id="normalStockCount">-</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center">
+                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem; margin-right: 10px;"></i>
+                    <div>
+                        <h5 class="card-title text-warning mb-0">Stock Bajo</h5>
+                        <h2 class="text-warning mb-0" id="lowStockCount">-</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center">
+                    <i class="bi bi-arrow-up text-info" style="font-size: 2rem; margin-right: 10px;"></i>
+                    <div>
+                        <h5 class="card-title text-info mb-0">Stock Alto</h5>
+                        <h2 class="text-info mb-0" id="highStockCount">-</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-between">
+    <div class="col-9 flex-fill">
+        <div id="partialViewContainer"></div>
+    </div>
+    <div class="collapse col-3" id="filter">
+        <div style="background-color: #eaecee; border: solid 2px #d5d8dc; border-radius: 10px;">
+            <div class="p-3">
+                <h4 style="text-align: center; margin-bottom: 20px;">
+                    <i class="bi bi-funnel text-primary"></i> Filtros
+                </h4>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Clave Microsip:</strong></label>
+                    <input id="txtMicrosipKey" type="text" class="form-control" placeholder="Buscar por clave...">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Descripción:</strong></label>
+                    <input id="txtDescription" type="text" class="form-control" placeholder="Buscar por descripción...">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Estado de Consignación:</strong></label>
+                    <select id="cmbConsignmentStatus" class="form-control">
+                        <option value="0">Todos</option>
+                        <option value="1">Solo Activos</option>
+                        <option value="2">Solo Inactivos</option>
+                    </select>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-danger" onclick="ClearFilter()" type="button">
+                        <i class="bi bi-x-lg"></i> Limpiar filtros
+                    </button>
+                    <button class="btn btn-outline-primary" type="button" onclick="GetData(1)">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = function () {
+        GetData(1);
+    };
+
+    function GetData(page) {
+        $('#partialViewContainer').html('<div class="text-center"><div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div><h4>Cargando datos...</h4></div>');
+
+        var microsipKey = $("#txtMicrosipKey").val();
+        var description = $("#txtDescription").val();
+        var consignmentStatus = $("#cmbConsignmentStatus").val();
+
+        $.ajax({
+            url: '/Consignment/GetData',
+            method: "post",
+            data: { microsipKey: microsipKey, description: description, consignmentStatus: consignmentStatus, page: page },
+            success: function (data) {
+                $("#partialViewContainer").html(data);
+                updateStats();
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+                $("#partialViewContainer").html('<div class="alert alert-danger text-center" role="alert"><h4>Error al cargar datos</h4><p>Por favor, intente nuevamente</p></div>');
+            }
+        });
+    }
+
+    function updateStats() {
+        var normalCount = 0, lowCount = 0, highCount = 0;
+
+        $('[data-status]').each(function() {
+            var status = $(this).data('status');
+            switch(status) {
+                case 'Normal': normalCount++; break;
+                case 'Bajo': lowCount++; break;
+                case 'Alto': highCount++; break;
+            }
+        });
+
+        $('#normalStockCount').text(normalCount);
+        $('#lowStockCount').text(lowCount);
+        $('#highStockCount').text(highCount);
+    }
+
+    function ClearFilter() {
+        document.getElementById("txtMicrosipKey").value = '';
+        document.getElementById("txtDescription").value = '';
+        document.getElementById("quickSearchKey").value = '';
+        document.getElementById("quickSearchDesc").value = '';
+        document.getElementById("cmbConsignmentStatus").value = '0';
+        GetData(1);
+    }
+
+    $("#txtMicrosipKey").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    $("#txtDescription").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    // Quick search functionality
+    $("#quickSearchKey").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            quickSearch();
+        }
+    });
+
+    $("#quickSearchDesc").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            quickSearch();
+        }
+    });
+
+    function quickSearch() {
+        // Sync quick search with filter inputs
+        var keyValue = $("#quickSearchKey").val();
+        var descValue = $("#quickSearchDesc").val();
+
+        $("#txtMicrosipKey").val(keyValue);
+        $("#txtDescription").val(descValue);
+
+        GetData(1);
+    }
+
+    function clearQuickSearch() {
+        $("#quickSearchKey").val('');
+        $("#quickSearchDesc").val('');
+        $("#txtMicrosipKey").val('');
+        $("#txtDescription").val('');
+        GetData(1);
+    }
+
+    function updateStock(idSupply, currentStock) {
+        var newStock = prompt("Ingrese el nuevo stock:", currentStock);
+        if (newStock !== null && newStock !== '') {
+            newStock = parseFloat(newStock);
+            if (isNaN(newStock) || newStock < 0) {
+                alert('Por favor ingrese un número válido mayor o igual a 0');
+                return;
+            }
+
+            $.ajax({
+                url: '/Consignment/UpdateStock',
+                method: 'POST',
+                data: { idSupply: idSupply, newStock: newStock },
+                success: function(response) {
+                    if (response.success) {
+                        GetData(1);
+                        alert('Stock actualizado correctamente');
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Error al actualizar el stock');
+                }
+            });
+        }
+    }
+
+    function toggleConsignment(idSupply, isConsignment) {
+        var action = isConsignment ? 'quitar de' : 'marcar como';
+        if (confirm('¿Está seguro de ' + action + ' consignación este artículo?')) {
+            $.ajax({
+                url: '/Consignment/ToggleConsignment',
+                method: 'POST',
+                data: { idSupply: idSupply, isConsignment: !isConsignment },
+                success: function(response) {
+                    if (response.success) {
+                        GetData(1);
+                        alert('Estado de consignación actualizado');
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Error al actualizar el estado de consignación');
+                }
+            });
+        }
+    }
+
+    function setMinMaxStock(idSupply, currentMin, currentMax) {
+        var minStock = prompt("Ingrese el stock mínimo:", currentMin);
+        if (minStock === null) return;
+
+        var maxStock = prompt("Ingrese el stock máximo:", currentMax);
+        if (maxStock === null) return;
+
+        minStock = parseFloat(minStock);
+        maxStock = parseFloat(maxStock);
+
+        if (isNaN(minStock) || isNaN(maxStock) || minStock < 0 || maxStock < 0 || minStock > maxStock) {
+            alert('Por favor ingrese valores válidos (mínimo debe ser menor o igual que máximo)');
+            return;
+        }
+
+        $.ajax({
+            url: '/Consignment/SetMinMaxStock',
+            method: 'POST',
+            data: { idSupply: idSupply, minStock: minStock, maxStock: maxStock },
+            success: function(response) {
+                if (response.success) {
+                    GetData(1);
+                    alert('Límites de stock actualizados correctamente');
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('Error al actualizar los límites de stock');
+            }
+        });
+    }
+</script>

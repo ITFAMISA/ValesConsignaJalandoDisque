@@ -1,0 +1,57 @@
+﻿@{
+    ViewData["Title"] = "ImportView";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 style="text-align: center;">Exportar vales</h2>
+<hr />
+<br />
+<div id="Body">@Html.Raw(TempData["Message_Import"])</div>
+<input type="text" autocomplete="off" class="form-control" placeholder="Buscar por C. C." id="search" />
+<div class="row align-items-center" style="text-align: center;">
+    <div class="col d-grid gap-2 mx-auto">
+        <button class="btn btn-outline-danger" onclick="ClearFilter()" type="button"><i class="bi bi-x-lg"></i> Limpiar filtros</button>
+    </div>
+    <div class="col-auto d-flex">
+        <label style="margin-right: 5px;">Buscar por:</label>
+        <div class="form-check form-check-inline">
+            <input id="rbtnImp0" class="form-check-input" type="radio" name="imported" value="0" checked>
+            <label class="form-check-label">Sin exportar</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input id="rbtnImp1" class="form-check-input" type="radio" name="imported" value="1">
+            <label class="form-check-label">Exportadas</label>
+        </div>
+    </div>
+    <div class="col d-grid gap-2 mx-auto">
+        <button class="btn btn-outline-primary" type="button" onclick="GetData(1)"><i class="bi bi-search"></i> Buscar</button>
+    </div>
+</div>
+<br />
+
+<div id="partialViewContainer"></div>
+
+<script>
+    window.onload = function () {
+        GetData(1);
+    }
+
+    function GetData(page) {
+        $('#partialViewContainer').html('<div class="text-center"><div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div><h4>Cargando datos...</h4></div>');
+        var imported = $("input[name='imported']:checked").val();
+        $.ajax({
+            url: '/Import/GetData',
+            method: "post",
+            data: { imported: imported, page: page },
+            success: function (data) {
+                $("#partialViewContainer").html(data);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+</script>

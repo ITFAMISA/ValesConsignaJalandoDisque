@@ -1,0 +1,235 @@
+﻿@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col-auto d-flex">
+        <a style="color: #8a1bb6; border-color: transparent; cursor: pointer;" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise" style="font-size: 32px" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Actualizar vales"></i>
+        </a>
+    </div>
+    <div class="col">
+        <h2 style="text-align: center;">Todos los vales</h2>
+    </div>
+    <div class="col-auto d-flex">
+        <a style="color:  #85929e; border-color: transparent; cursor: pointer;" data-bs-toggle="collapse" href="#filter" role="button" aria-expanded="false" aria-controls="filter">
+            <i id="filterIcon" class="bi bi-filter" style="font-size: 32px" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="Mostrar filtros"></i>
+        </a>
+    </div>
+</div>
+<hr />
+<br />
+<div class="container-fluid flex-fill">
+    <div class="row justify-content-between">
+        <div class="col-9 flex-fill">
+            <div id="Body">@Html.Raw(TempData["Message_Voucher"])</div>
+            <div id="partialViewContainer"></div>
+        </div>
+        <div class="collapse col-3" id="filter">
+            <div style="background-color:  #eaecee; border: solid 2px #d5d8dc;">
+                <ol class="list-group list-group-flush">
+                    <li class="list-group-item align-items-start">
+                        <h3 style="text-align: center;">Filtros</h3>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Folio</div>
+                            <input id="txtVouchNum" type="text" class="form-control">
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Estatus</div>
+                            <div class="form-check">
+                                <input id="status2" name="chbxRqStatus" class="form-check-input" type="checkbox" value="0" checked>
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Pendientes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input id="status1" name="chbxRqStatus" class="form-check-input" type="checkbox" value="1">
+                                <label class="form-check-label" for="flexCheckDefault">
+                                    Revisadas
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input id="status3" class="form-check-input" type="checkbox" value="1">
+                                <label class="form-check-label" for="flexCheckDefault">
+                                    Canceladas
+                                </label>
+                            </div>
+                            @if (!User.IsInRole("Operacional") && !User.IsInRole("CentroCosto"))
+                            {
+                                string txtA = User.IsInRole("AlmacenMP") || User.IsInRole("Administrador") ? "Cerradas" : "Impresas";
+                                string txtB = User.IsInRole("AlmacenMP") || User.IsInRole("Administrador") ? "Sin cerrar" : "Sin imprimir";
+                                <div class="form-check">
+                                    <input id="pickedUp1" class="form-check-input" type="checkbox" name="chbxPickedUp" value="1">
+                                    <label class="form-check-label" for="flexCheckDefault">
+                                        @txtA
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input id="pickedUp2" class="form-check-input" type="checkbox" name="chbxPickedUp" value="0">
+                                    <label class="form-check-label" for="flexCheckDefault">
+                                        @txtB
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Fecha</div>
+                            <div class="row justify-content-between">
+                                <div class="col">
+                                    <select id="cmbMonth" class="form-control">
+                                        <option value="0" selected>Mes</option>
+                                        <option value="1">Enero</option>
+                                        <option value="2">Febrero</option>
+                                        <option value="3">Marzo</option>
+                                        <option value="4">Abril</option>
+                                        <option value="5">Mayo</option>
+                                        <option value="6">Junio</option>
+                                        <option value="7">Julio</option>
+                                        <option value="8">Agosto</option>
+                                        <option value="9">Septiembre</option>
+                                        <option value="10">Octubre</option>
+                                        <option value="11">Noviembre</option>
+                                        <option value="12">Diciembre</option>
+                                    </select>
+                                </div>
+                                <div class="col">
+                                    <select id="cmbYear" class="form-control" asp-items="@ViewBag.Years">
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">C. C.</div>
+                            <input id="txtCc" type="text" class="form-control">
+                        </div>
+                    </li>
+                    @if (!User.IsInRole("Operacional") && !User.IsInRole("CentroCosto"))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Solicitante</div>
+                                <input id="txtUser" type="text" class="form-control">
+                            </div>
+                        </li>
+                    }
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Opciones</div>
+                            <div class="d-grid gap-2 d-md-block justify-content-between">
+                                <a class="btn" onclick="ClearFilter()" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="Eliminar filtros"> <i class="bi bi-x-lg" style="font-size: 24px; color:#ca1f1f; border-color: transparent;"></i></a>
+                                <a class="btn" onclick="GetData(1)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="Buscar"> <i class="bi bi-search" style="font-size: 24px; color:#1f9bca; border-color: transparent;"></i></a>
+                            </div>
+                        </div>
+                    </li>
+                </ol>
+                <br />
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = function () {
+        GetData(1);
+    }
+
+    function GetData(page) {
+        $('#partialViewContainer').html('<div class="text-center"><div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div>' +
+            '<div class="spinner-grow" style="width: 1rem; height: 1rem;" role="status"><span class="visually-hidden">Loading...</span></div><h4>Cargando datos...</h4></div>');
+        var cmbMonth = document.getElementById("cmbMonth");
+        var cmbYear = document.getElementById("cmbYear");
+        var canceled = 0;
+        if (document.getElementById("status3").checked == true) {
+            canceled = 1;
+        }
+        var cc = $("#txtCc").val();
+        var month = cmbMonth.options[cmbMonth.selectedIndex].value;
+        var year = cmbYear.options[cmbYear.selectedIndex].value;
+        var chbxRqStatus = document.getElementsByName('chbxRqStatus');
+        var chbxPickedUp = document.getElementsByName('chbxPickedUp');
+        var authorized = "";
+        var pickedUp = "";
+        for (var i = 0; i < chbxPickedUp.length; i++) {
+            if (chbxPickedUp[i].checked) {
+                pickedUp += "," + chbxPickedUp[i].value;
+            }
+        }
+        for (var i = 0; i < chbxRqStatus.length; i++) {
+            if (chbxRqStatus[i].checked) {
+                authorized += "," + chbxRqStatus[i].value;
+            }
+        }
+        if (authorized) { authorized = authorized.substring(1); }
+        if (pickedUp) { pickedUp = pickedUp.substring(1); }
+        var user = $("#txtUser").val();
+        var voucherNumber = $('#txtVouchNum').val();
+        if (voucherNumber.trim().length != 0) {
+            user = '';
+            cc = '';
+            month = 0;
+            year = 0;
+            authorized = '';
+            pickedUp = '';
+            canceled = -1;
+        }
+        $.ajax({
+            url: '/Voucher/GetData',
+            method: "post",
+            data: { user: user, cc: cc, month: month, year: year, authorized: authorized, pickedUp: pickedUp, voucherNumber: voucherNumber, canceled: canceled, page: page },
+            success: function (data) {
+                $('#filter').collapse('hide');
+                $("#partialViewContainer").html(data);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+
+    $("#txtVouchNum").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    $("#txtUser").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    $("#txtCc").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetData(1);
+        }
+    });
+
+    function ClearFilter() {
+        document.getElementById("status1").checked = false;
+        document.getElementById("status3").checked = false;
+        document.getElementById("status2").checked = true;
+        var cmbMonth = document.getElementById("cmbMonth");
+        var cmbYear = document.getElementById("cmbYear");
+        cmbMonth.value = 0;
+        cmbYear.value = 0;
+        document.getElementById("txtCc").value = null;
+        document.getElementById("txtVouchNum").value = null;
+        if ('@User.IsInRole("Operacional")' == 'False' || '@User.IsInRole("CentroCosto")' == 'False') {
+            document.getElementById("txtUser").value = null;
+            document.getElementById("pickedUp1").checked = false;
+            document.getElementById("pickedUp2").checked = false;
+        }
+        GetData(1);
+    }
+</script>

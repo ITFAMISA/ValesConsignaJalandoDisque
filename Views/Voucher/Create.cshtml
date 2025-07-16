@@ -1,0 +1,429 @@
+﻿@{
+    ViewData["Title"] = "Create";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 style="text-align:center;">Crear vale nuevo</h2>
+<hr />
+<br />
+<div id="Body"></div>
+
+<div class="row">
+    <div class="col-3">
+        <div class="row">
+            <div class="col-auto d-flex align-items-center">
+                <label class="form-label">C. C:</label>
+            </div>
+            <div class="col">
+                <input class="form-control" id="txtCc" list="costcenters" />
+                <datalist id="costcenters"></datalist>
+            </div>
+        </div>
+    </div>
+    <div class="col"> </div>
+    <div class="col-4">
+        <div class="row">
+            <div class="col-auto d-flex align-items-center">
+                <label class="form-label">Grupo de líneas:</label>
+            </div>
+            <div class="col">
+                <select id="cmbGroupLine" asp-items="@ViewBag.GroupSupplyLines" class="form-control" onchange="FillCmbSupplyLine()">
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="row">
+            <div class="col-auto d-flex align-items-center">
+                <label class="form-label">Líneas de artículos:</label>
+            </div>
+            <div class="col">
+                <select id="cmbSupplyLine" class="form-control" onchange="SupplyList(1)">
+                    <option value="0">-- Seleccionar línea --</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+@if (ViewBag.VoucherType == 1)
+{
+    <br />
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="chbxSurplus" onchange="Surplus()">
+        <label class="form-check-label">
+            Sobrante
+        </label>
+    </div>
+}
+<br />
+<div class="input-group mb-3">
+    <input class="form-control" list="supplies" id="txtSupply" placeholder="Buscar por nombre o código...">
+    <datalist id="supplies">
+    </datalist>
+    <button class="btn btn-outline-success" type="button" id="button-addon2" onclick="AddRow()"><i class="bi bi-plus-lg"></i> Agregar</button>
+</div>
+<div id="msg" style="color:#cb4335; font-size:12px; font-style:italic;"></div>
+
+<br />
+<table class="table table-primary text-center table-sm align-middle" id="table">
+    <thead>
+        <tr>
+            <th scope="col">Eliminar</th>
+            <th scope="col">Descripción del artículo</th>
+            <th scope="col">Tipo de unidad</th>
+            <th scope="col">Cantidad</th>
+            <th scope="col">Existencia</th>
+        </tr>
+    </thead>
+    <tbody class="table-group-divider">
+    </tbody>
+</table>
+<br />
+<div class="form-check">
+    <input class="form-check-input" type="checkbox" data-bs-toggle="collapse" href="#collapseEmpNumber" id="chbxPickedUp" checked>
+    <label class="form-check-label" for="flexCheckDefault">
+        Recibirá otra persona
+    </label>
+</div>
+<div class="collapse show" id="collapseEmpNumber">
+    <div class="row">
+        <div class="col-auto d-flex align-items-center">
+            <label class="form-label">Recibirá:</label>
+        </div>
+        <div class="input-group">
+            <button class="btn btn-outline-info" type="button" onclick="GetNameWorker()"><i class="bi bi-search"></i></button>
+            <input type="text" class="form-control" id="txtEmpNumber" placeholder="Ingresar número de ficha">
+            <input type="text" class="form-control" id="txtName" placeholder="Nombre del trabajador" readonly>
+            <button class="btn btn-outline-danger" type="button" onclick="ClearName()"><i class="bi bi-x-lg"></i></button>
+        </div>
+    </div>
+</div>
+<br />
+<div class="gap-2 d-md-flex justify-content-md-end">
+    <a class="btn btn-secondary" style="width: 200px; margin-right: auto;" asp-action="Index" asp-controller="Voucher">Cancelar</a>
+    <a class="btn btn-primary" id="btnCreate" style="width: 200px;" onclick="Create()">Aceptar</a>
+</div>
+
+<script>
+    window.onload = function () {
+        CostCenterList();
+        SupplyList(1);
+    };
+
+    function Surplus(){
+        if (document.getElementById('chbxSurplus').checked){
+            $('#table tbody').empty();
+            $('#cmbGroupLine').prop('disabled', true);
+            $('#cmbSupplyLine').prop('disabled', true);
+            SupplyList(0);
+        } else {
+            $('#table tbody').empty();
+            $('#cmbGroupLine').prop('disabled', false);
+            $('#cmbSupplyLine').prop('disabled', false);
+            SupplyList(1);
+        }
+    }
+
+    function FillCmbSupplyLine() {
+        var cmbGroupLine = document.getElementById("cmbGroupLine");
+        var groupLine = cmbGroupLine.options[cmbGroupLine.selectedIndex].value;
+        var voucherType = @ViewBag.voucherType;
+        $.ajax({
+            url: '/Stock/ListSupplyLine',
+            data: { idGroupSupplyLine: groupLine, rawMaterial: voucherType },
+            method: "GET",
+            success: function (result) {
+                $("#cmbSupplyLine").empty();
+                var s = '<option value="0" selected>-- Seleccionar línea --</option>';
+                for (var i = 0; i < result.length; i++) {
+                    s += '<option value="' + result[i].idSupplyLine + '">' + result[i].name + '</option>';
+                }
+                $("#cmbSupplyLine").append(s);
+                SupplyList(1);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                alert("Status: " + textStatus); alert("Error: " + errorThrown);
+                console.log(error);
+            }
+        });
+    }
+
+    function CostCenterList() {
+        $.ajax({
+            url: '/CostCenter/CostCenterList',
+            method: 'get',
+            success: function (data) {
+                var s = '';
+                for (var i = 0; i < data.length; i++) {
+                    var escapedDescription = data[i].description.replace(/'/g, '&#39;').replace(/"/g, '&#34;');
+                    s += '<option data-id="' + data[i].idCostCenter + '" value="' + escapedDescription + '"></option>'
+                }
+                document.getElementById("costcenters").innerHTML = s;
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+
+    function SupplyList(flag) {
+        var cmbGroupLine = document.getElementById("cmbGroupLine");
+        var cmbSupplyLine = document.getElementById("cmbSupplyLine");
+        var groupLine = cmbGroupLine.options[cmbGroupLine.selectedIndex].value;
+        var supplyLine = cmbSupplyLine.options[cmbSupplyLine.selectedIndex].value;
+        var voucherType = @ViewBag.voucherType;
+        var url = '';
+        var data = new Object();
+        if (flag == 1) {
+            url = '/Stock/ListSupply';
+            data.idGroupSupplyLine = groupLine;
+            data.idSupplyLine = supplyLine;
+            data.rawMaterial = voucherType;
+        } else {
+            url = '/Stock/ListSupplySurplus';
+        }
+        $.ajax({
+            url: url,
+            data: data,
+            method: 'get',
+            success: function (data) {
+                var s = '';
+                for (var i = 0; i < data.length; i++) {
+                    var escapedDescription = data[i].description.replace(/'/g, '&#39;').replace(/"/g, '&#34;');
+                    var escapedMicrosipkey = data[i].microsipkey ? data[i].microsipkey.replace(/'/g, '&#39;').replace(/"/g, '&#34;') : '';
+
+                    // // Opción para búsqueda por descripción
+                    // s += '<option data-max="' + data[i].qtyTotal + '" data-unit="' + data[i].unitType + '" data-value="' +
+                    //     data[i].idSupply + '" data-surplus="' + data[i].idSupplySurplus + '" data-microsipkey="' + escapedMicrosipkey +
+                    //     '" data-description="' + escapedDescription + '" value="' + escapedDescription + '"></option>';
+
+                    // // Opción para búsqueda por microsipkey (si existe)
+                    // if (escapedMicrosipkey) {
+                    //     s += '<option data-max="' + data[i].qtyTotal + '" data-unit="' + data[i].unitType + '" data-value="' +
+                    //         data[i].idSupply + '" data-surplus="' + data[i].idSupplySurplus + '" data-microsipkey="' + escapedMicrosipkey +
+                    //         '" data-description="' + escapedDescription + '" value="' + escapedMicrosipkey + ' - ' + escapedDescription + '"></option>';
+                    // }
+
+                    s += '<option ' +
+    'data-max="' + data[i].qtyTotal + '" ' +
+    'data-unit="' + data[i].unitType + '" ' +
+    'data-value="' + data[i].idSupply + '" ' +
+    'data-surplus="' + data[i].idSupplySurplus + '" ' +
+    'data-microsipkey="' + escapedMicrosipkey + '" ' +
+    'data-description="' + escapedDescription + '" ' +
+    'value="' + (escapedMicrosipkey ? escapedMicrosipkey + ' - ' : '') + escapedDescription + '">' +
+    '</option>';
+
+                }
+                document.getElementById("supplies").innerHTML = s;
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+
+    // function AddRow() {
+    //     var inputElement = document.getElementById('txtSupply');
+    //     var datalistElement = document.getElementById('supplies');
+    //     var selectedValue = inputElement.value;
+
+    //     // Buscar por valor exacto, microsipkey o que contenga el microsipkey
+    //     var selectedOption = Array.from(datalistElement.options).find(option =>
+    //         option.value === selectedValue ||
+    //         (option.getAttribute('data-microsipkey') && option.getAttribute('data-microsipkey') === selectedValue) ||
+    //         option.value.includes(selectedValue)
+    //     );
+
+    //     if (!selectedOption) {
+    //         inputElement.value = null;
+    //         document.getElementById("msg").innerHTML = '*Este artículo no existe, favor de seleccionar uno de los que se muestran en la lista';
+    //     } else {
+    //         var dataValue = selectedOption.getAttribute('data-value');
+    //         var dataMax = selectedOption.getAttribute('data-max');
+    //         var dataUnit = selectedOption.getAttribute('data-unit');
+    //         var dataSurplus = selectedOption.getAttribute('data-surplus');
+    //         var productDescription = selectedOption.getAttribute('data-description');
+
+    //         var alreadyExists = false;
+    //         $('#table tbody tr').each(function () {
+    //             var existingRowId = $(this).attr('id');
+    //             if (existingRowId === 'row' + dataValue) {
+    //                 alreadyExists = true;
+    //             }
+    //         });
+
+    //         if (alreadyExists) {
+    //             inputElement.value = null;
+    //             document.getElementById("msg").innerHTML = '*Este artículo ya está agregado';
+    //         } else {
+    //             var newRow = '<tr id="row' + dataValue + '"><td> <a class="btn" onclick="RemoveRow(' + dataValue + ')"> <i class="bi bi-x-square" style="font-size: 24px; color:#ca1f1f; border-color: transparent;"></i></a>' +
+    //                 '</td><td>' + productDescription + '</td>' + '<td>' + dataUnit + '</td><td><input class="form-control" type="number" min="1" max="' + dataMax + '" name="txtQty" step="0.001" data-id="' + dataValue +
+    //                 '" data-surplus="' + dataSurplus + '" value="1" /></td>' +
+    //                 '<td>'+ dataMax +'</td></tr>';
+    //             $('#table tbody').append(newRow);
+    //             inputElement.value = null;
+    //             document.getElementById("msg").innerHTML = '';
+    //         }
+    //     }
+    // }
+
+    function AddRow() {
+        var inputElement = document.getElementById('txtSupply');
+        var datalistElement = document.getElementById('supplies');
+        var selectedValue = inputElement.value;
+
+            var selectedOption = Array.from(datalistElement.options).find(option =>
+        option.value.trim().toLowerCase() === selectedValue.trim().toLowerCase()
+    );
+
+         
+
+        if (!selectedOption) {
+            inputElement.value = null;
+            document.getElementById("msg").innerHTML = '*Este artículo no existe, favor de seleccionar uno de los que se muestran en la lista';
+        } else {
+            var dataValue = selectedOption.getAttribute('data-value');
+            var dataMax = selectedOption.getAttribute('data-max');
+            var dataUnit = selectedOption.getAttribute('data-unit');
+            var dataSurplus = selectedOption.getAttribute('data-surplus');
+            var productDescription = selectedOption.getAttribute('data-description');
+
+            var alreadyExists = false;
+            $('#table tbody tr').each(function () {
+                var existingRowId = $(this).attr('id');
+                if (existingRowId === 'row' + dataValue) {
+                    alreadyExists = true;
+                }
+            });
+
+            if (alreadyExists) {
+                inputElement.value = null;
+                document.getElementById("msg").innerHTML = '*Este artículo ya está agregado';
+            } else {
+                var newRow = '<tr id="row' + dataValue + '"><td> <a class="btn" onclick="RemoveRow(' + dataValue + ')"> <i class="bi bi-x-square" style="font-size: 24px; color:#ca1f1f; border-color: transparent;"></i></a>' +
+                    '</td><td>' + productDescription + '</td>' + '<td>' + dataUnit + '</td><td><input class="form-control" type="number" min="1" max="' + dataMax + '" name="txtQty" step="0.001" data-id="' + dataValue +
+                    '" data-surplus="' + dataSurplus + '" value="1" /></td>' +
+                    '<td>'+ dataMax +'</td></tr>';
+                $('#table tbody').append(newRow);
+                inputElement.value = null;
+                document.getElementById("msg").innerHTML = '';
+            }
+        }
+    }
+
+    function RemoveRow(idSupply) {
+        $('#row' + idSupply).remove();
+    }
+
+    function Create() {
+        var qtyInputs = document.getElementsByName('txtQty');
+        var data = [];
+        var hasError = false;
+        if(qtyInputs.length <= 0){
+            document.getElementById("msg").innerHTML = '*No se puede crear el vale sin al menos un insumo';
+        }
+        for (var i = 0; i < qtyInputs.length; i++) {
+            var qtyValue = qtyInputs[i].value;
+            var dataMax = qtyInputs[i].getAttribute('max');
+            if (parseFloat(qtyValue) > parseFloat(dataMax)) {
+                hasError = true;
+                alert('La cantidad para el artículo es mayor que el máximo permitido (' + dataMax + ').');
+                qtyInputs[i].focus();
+                break;
+            }
+            if (parseFloat(qtyValue) <= 0) {
+                hasError = true;
+                alert('La cantidad para el artículo debe ser mayor a 0 para poder solicitarse.');
+                qtyInputs[i].focus();
+                break;
+            }
+            data.push({
+                idSupply: qtyInputs[i].getAttribute('data-id'),
+                qtyRequested: qtyValue,
+                idSupplySurplus: qtyInputs[i].getAttribute('data-surplus')
+            });
+        }
+        if (!hasError) {
+            var empNumber = $("#txtEmpNumber").val();
+            var cc = '';
+            var inputElement = document.getElementById('txtCc');
+            var datalistElement = document.getElementById('costcenters');
+            var selectedValue = inputElement.value;
+            var selectedOption = Array.from(datalistElement.options).find(option => option.value === selectedValue);
+            var voucherType = @ViewBag.voucherType;
+            if (!selectedOption) {
+                inputElement.value = null;
+                document.getElementById("msg").innerHTML = '*Este centro de costo no existe, favor de seleccionar uno de los que se muestran en la lista';
+            } else {
+                cc = selectedOption.getAttribute('data-id');
+                $.ajax({
+                    url: '/Voucher/Create',
+                    method: "post",
+                    data: { cc: cc, empNumber: empNumber, lstVD: data, rawMaterial: voucherType },
+                    success: function (data) {
+                        $("#Body").html(data.msg);
+                        window.scrollTo({
+                            top: 0, behavior: "smooth"
+                        });
+                        if (data.idVoucher > 0){
+                            window.location.href = data.redirectUrl;
+                        } else {
+                            $('#btnCreate').removeClass('disabled');
+                        }
+
+                    },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        console.log("Status: " + textStatus);
+                        console.log("Error: " + errorThrown);
+                    }
+                });
+            }
+        }
+    }
+
+    $("#txtSupply").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            AddRow();
+        }
+    });
+
+    $("#txtEmpNumber").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            GetNameWorker();
+        }
+        if ($("#txtEmpNumber").val().length > 0 && ($("#txtName").val().length == 0 || $("#txtName").val() == "Número de empleado incorrecto o no existe")) {
+            $('#btnCreate').addClass('disabled');
+        } else {
+            $('#btnCreate').removeClass('disabled');
+        }
+    });
+
+    function ClearName() {
+        document.getElementById("txtEmpNumber").value = null;
+        document.getElementById("txtName").value = null;
+        $('#btnCreate').removeClass('disabled');
+    }
+
+    function GetNameWorker() {
+        var empNumber = $("#txtEmpNumber").val();
+        $.ajax({
+            url: '/Worker/GetWorkerName',
+            method: "post",
+            data: { empNumber: empNumber },
+            success: function (data) {
+                $('#txtName').val(data);
+                $('#txtName').focus();
+                if ($("#txtName").val() != "Número de empleado incorrecto o no existe") {
+                    $('#btnCreate').removeClass('disabled');
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+</script>

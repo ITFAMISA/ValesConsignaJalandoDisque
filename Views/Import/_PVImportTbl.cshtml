@@ -1,0 +1,124 @@
+﻿@using VoucherCapture.ViewModel
+@model List<VoucherC_ViewModel>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-dark text-center" role="alert">
+        No hay datos
+    </div>
+}
+else
+{
+    <table class="table table-sm text-center table-striped table-bordered align-middle">
+        <thead>
+            <tr class="table-dark">
+                @if(ViewBag.Imported == 0)
+                {
+                <th scope="col">
+                    <input class="form-check-input" type="checkbox" id="checkAll">
+                </th>
+                }
+                <th scope="col">Folio</th>
+                <th scope="col">C. C.</th>
+                <th scope="col">Fecha solicitada</th>
+                <th scope="col">Fecha autorizada</th>
+                <th scope="col">Autorizado por</th>
+                <th scope="col">Detalles</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    @if(ViewBag.Imported == 0){
+                    <td><input class="form-check-input" type="checkbox" name="chbxImport" id="flexCheckDefault" value="@item.IdVoucher"/></td>
+                    }
+                    <td>@item.VoucherNumber</td>
+                    <td>@item.Cc</td>
+                    <td>@item.RequestedDate</td>
+                    <td>@item.AuthorizationDate</td>
+                    <td>@item.AuthorizedBy</td>                     
+                    <td>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="Details(@item.IdVoucher, @item.idVoucherDetail)"><i class="bi bi-info-circle"></i></button>
+                    </td>                    
+                </tr>
+            }
+        </tbody>
+    </table>
+    <br />
+    <div id="pages">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                @for (int i = 1; i <= ViewBag.Pages; i++)
+                {
+                    string activeClass = "";
+                    if (ViewBag.ActualPage == i)
+                    {
+                        activeClass = "active";
+                    }
+                    <li class="page-item @activeClass">
+                        <a class="page-link" data-page="@i">@i</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+        <p class="text-center" style="color: dimgray; font-size: 10px; font-style: italic">
+            Página @ViewBag.ActualPage de @ViewBag.Pages
+        </p>
+    </div>
+    @if(ViewBag.Imported == 0){
+    <br />
+    <button class="btn btn-success" type="button" style="position:fixed; right: 10px; bottom: 10px;" onclick="ExportData()">
+        <i class="bi bi-upload"></i> Exportar
+    </button>
+    }
+}
+
+<script>
+    $("#checkAll").click(function () {
+        $('input:checkbox').not(this).prop('checked', this.checked);
+    });
+
+    function Details(idVoucher, idVoucherDetail){
+        $.ajax({
+            url: "/Import/InfoModal",
+            method: "get",
+            data: { idVoucher: idVoucher, idVoucherDetail: idVoucherDetail },
+            success: function (data) {
+                $("#Body").html(data);
+                $("#InfoModal").modal('show');
+                $('#InfoModal').on('hidden.bs.modal', function (e) {
+                    $("#Body").html("");
+                });
+            }
+        });
+    }
+
+    function ExportData(){
+        var result = confirm("¿Realmente quiere exportar los siguientes datos?");
+        if (result) {
+            var chbxImport = document.getElementsByName('chbxImport');
+            var idsToImport = '';
+            for (var i = 0; i < chbxImport.length; i++) {
+                if (chbxImport[i].checked) {
+                    idsToImport += "," + chbxImport[i].value;
+                }
+            }
+            if (idsToImport) { idsToImport = idsToImport.substring(1); }
+            $.ajax({
+                url: "/Import/Import",
+                method: "post",
+                data: { idsToImport: idsToImport },
+                success: function (data) {
+                    $("#Body").html(data);
+                    GetData(1);
+                }
+            });
+        }
+    }      
+
+    $("#pages").on("click", ".page-link", function () {
+        var page = $(this).data("page");
+        GetData(page);
+    });
+</script>

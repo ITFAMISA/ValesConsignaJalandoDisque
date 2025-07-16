@@ -1,0 +1,24 @@
+﻿@using VoucherCapture.ViewModel
+@model CostCenter_ViewModel
+
+<div class="modal fade" id="DeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-action="Delete" asp-controller="CostCenterUser">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">¡Atención!</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de eliminar a <b>@Model.User</b> del siguiente centro de costo: <b>@Model.Description</b>?</p>
+            </div>
+            <input type="hidden" asp-for="EmpNumber" />
+            <input type="hidden" asp-for="IdCostCenter" />
+            <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger" style="margin-right: auto;">Eliminar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,155 @@
+﻿@{
+    List<Permission_Model> permissionList = ViewBag.PermissionList as List<Permission_Model>;
+}
+
+<div class="modal fade" id="CreateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Agregar usuario</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Usuario: </label>
+                <div class="input-group mb-3">
+                    <input id="txtEmail" type="text" class="form-control" placeholder="Correo" autocomplete="off" required>
+                    <button class="btn btn-outline-info" type="button" onclick="SearchWorker()"><i class="bi bi-search"></i> Buscar</button>
+                </div>
+                <input id="txtName" type="text" class="form-control" placeholder="Nombre" readonly>
+                <div class="input-group">
+                    <input id="txtRole" type="text" class="form-control" placeholder="Puesto" readonly>
+                    <input id="txtDepartment" type="text" class="form-control" placeholder="Departamento" readonly>
+                </div>
+                <input type="hidden" id="txtEmpNumber" />
+                <br />
+                <label class="form-label"><b>Permisos:</b></label>
+                <br /> 
+                @foreach (var item in permissionList)
+                {
+                    var isOperacional = item.IdPermission == 2;
+                    var checkboxId = $"chk_{item.IdPermission}";
+                    var radiosDivId = $"radios_{item.IdPermission}";
+
+                    <div class="form-check">
+                        <input class="form-check-input operacional-check"
+                               name="chbxPermissions"
+                               type="checkbox"
+                               value="@item.IdPermission"
+                               id="@checkboxId"
+                               data-target="@radiosDivId" />
+
+                        <label class="form-check-label" for="@checkboxId">
+                            @item.Name
+                        </label>
+
+                        @if (isOperacional)
+                        {                         
+                            <div id="@radiosDivId" class="mt-2 ms-4" style="display: none;">
+                                <input type="radio" id="mp_@item.IdPermission" name="matPrimOtros" value="1" />
+                                <label for="mp_@item.IdPermission">Materia Prima</label>
+
+                                <input type="radio" id="ots_@item.IdPermission" name="matPrimOtros" value="0" />
+                                <label for="ots_@item.IdPermission">Otros</label>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Regresar</button>
+                <button id="btnSave" type="button" class="btn btn-primary" onclick="CreateUserPermission()">Agregar</button>                    
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function SearchWorker() {
+        var email = $("#txtEmail").val();
+        await $.ajax({
+            url: '/Worker/GetWorkNameByEmail',
+            method: "post",
+            data: { email: email },
+            success: function (data) {
+                $('#txtEmpNumber').val(data.empNumber);
+                $('#txtName').val(data.name);
+                $('#txtRole').val(data.role);
+                $('#txtDepartment').val(data.department);
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+
+    $("#txtEmail").on('keyup', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            SearchWorker();
+        }
+    });
+
+    $(document).ready(function () {
+        $(window).keydown(function (event) {
+            if (event.keyCode == 13) {
+                event.preventDefault();
+                return false;
+            }
+        });
+    });
+
+    async function CreateUserPermission(){
+        await SearchWorker();
+        var chbxPermissions = document.getElementsByName('chbxPermissions');
+        var empNumber = $("#txtEmpNumber").val();    
+        var matPrimOtros = $('input[name="matPrimOtros"]:checked').val() || null;      
+        var data = {
+            empNumber: empNumber,
+            matPrimOtros: matPrimOtros,
+            permissions: []
+            };
+        for (var i = 0; i < chbxPermissions.length; i++) {
+            if (chbxPermissions[i].checked) {
+                data.permissions.push({
+                    idPermission: chbxPermissions[i].value
+                });
+            }
+        }
+        $.ajax({
+            url: '/UserPermission/Create',
+            method: "post",
+            data: { userModel: data },
+            success: function (data) {
+                window.location.href = data.redirectUrl;
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                console.log("Status: " + textStatus);
+                console.log("Error: " + errorThrown);
+            }
+        });
+    }
+
+     document.querySelectorAll('.operacional-check').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                const targetId = this.dataset.target;
+                const targetDiv = document.getElementById(targetId);
+
+                if (targetDiv) {
+                    const radios = targetDiv.querySelectorAll('input[type="radio"]');
+
+                    if (this.checked) {
+                        targetDiv.style.display = 'block';
+                        radios.forEach(r => r.required = true);
+                    } else {
+                        targetDiv.style.display = 'none';
+                        radios.forEach(r => {
+                            r.required = false;
+                            r.checked = false;
+                        });
+                    }
+                }
+            });
+        });      
+   
+</script>
+   

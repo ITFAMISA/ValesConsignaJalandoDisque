@@ -1,0 +1,51 @@
+﻿@using VoucherCapture.ViewModel
+@model VoucherC_ViewModel
+@{
+    var lstVD = ViewBag.VDList as List<VoucherDetail_ViewModel>;
+}
+
+<div class="modal fade" id="DeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">¡Atención!</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="container">
+                <h5 class="card-text">¿Está seguro de eliminar este vale? </h5>
+                <p class="card-text">Este vale junto a sus artículos dejará de existir.</p>
+                <br />
+                <div class="container-md">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger" style="color:white;">
+                            Datos
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">Cc: @Model.Cc</h5>
+                            <p class="card-text">Fecha de pedido: @Model.RequestedDate</p>
+                            <p class="card-text"></p>
+                            <div class="container">
+                                <ul>
+                                @foreach(var item in lstVD)
+                                {
+                                    <li>@item.Supply</li>
+                                }
+                                </ul>
+                            </div>
+                            <p class="card-text">Recogerá: @Model.PickedUpBy</p>
+                        </div>
+                    </div>
+                </div>
+                <br />
+            </div>
+            <form method="post" asp-action="Delete" asp-controller="Voucher">
+                <div class="modal-footer">
+                    <input type="hidden" asp-for="VoucherNumber" />
+                    <button id="btnSave" type="submit" class="btn btn-danger" style="margin-right: auto">Eliminar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Regresar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
